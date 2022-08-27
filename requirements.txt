@@ -1,0 +1,6 @@
+pylint >= 2.6.0
+autopep8 >= 1.6.0
+pydantic>=1.8.2
+discord
+sqlalchemy >= 1.4.32
+mysql
