@@ -1,0 +1,8 @@
+class IncomeType(str):
+    BANK_BCA='BANK BCA'
+    BANK_ALADIN='BANK ALADIN'
+    GIFT='GIFT'
+    CASH='CASH'
+    GOPAY='GOPAY'
+    OVO='OVO'
+    SHOPEE_PAY='SHOPEE PAY'
