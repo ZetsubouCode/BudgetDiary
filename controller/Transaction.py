@@ -28,7 +28,7 @@ class Transaction:
         return transaction
 
     @staticmethod
-    async def add(last_layer:int, last_room:int)-> TransactionModel:
+    async def add(total:int, date_transaction:date)-> TransactionModel:
         """
         Create Transaction object and add it to the database
         @param last_layer: Transaction last_layer
@@ -36,7 +36,7 @@ class Transaction:
         @return: Transaction object
         """
         with get_session() as session:
-            transaction = TransactionModel(last_layer=last_layer, last_room=last_room)
+            transaction = TransactionModel(total=total,date_transaction=date_transaction)
             session.add(transaction)
             session.commit()
             session.flush()
@@ -55,8 +55,8 @@ class Transaction:
         with get_session() as sess:
             sess.query(TransactionModel).filter_by(id=int(target_id)).update(
                     {
-                        TransactionModel.last_layer : new_obj.last_layer,
-                        TransactionModel.last_room : new_obj.last_room,
+                        TransactionModel.total: new_obj.total,
+                        TransactionModel.date_transaction: new_obj.date_transaction
                     }
                 )
             sess.commit()

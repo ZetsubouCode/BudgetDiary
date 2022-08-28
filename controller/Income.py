@@ -3,6 +3,7 @@ from datetime import date
 from __database import get_session
 from model.database import Income as IncomeModel
 from utils import Debug, DebugLevel
+from ..model.enum import IncomeType
 
 class Income:
     @staticmethod
@@ -28,7 +29,7 @@ class Income:
         return income
 
     @staticmethod
-    async def add(last_layer:int, last_room:int)-> IncomeModel:
+    async def add(transaction_id:int, amount:int, type:IncomeType, detail:str)-> IncomeModel:
         """
         Create Income object and add it to the database
         @param last_layer: Income last_layer
@@ -36,7 +37,7 @@ class Income:
         @return: Income object
         """
         with get_session() as session:
-            income = IncomeModel(last_layer=last_layer, last_room=last_room)
+            income = IncomeModel(transaction_id=transaction_id, amount=amount, type=type, detail=detail)
             session.add(income)
             session.commit()
             session.flush()
@@ -55,8 +56,10 @@ class Income:
         with get_session() as sess:
             sess.query(IncomeModel).filter_by(id=int(target_id)).update(
                     {
-                        IncomeModel.last_layer : new_obj.last_layer,
-                        IncomeModel.last_room : new_obj.last_room,
+                        IncomeModel.transaction_id : new_obj.transaction_id,
+                        IncomeModel.amount : new_obj.amount,
+                        IncomeModel.type : new_obj.type,
+                        IncomeModel.detail : new_obj.detail,
                     }
                 )
             sess.commit()

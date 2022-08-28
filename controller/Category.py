@@ -28,7 +28,7 @@ class Category:
         return category
 
     @staticmethod
-    async def add(last_layer:int, last_room:int)-> CategoryModel:
+    async def add(name:str)-> CategoryModel:
         """
         Create Category object and add it to the database
         @param last_layer: Category last_layer
@@ -36,7 +36,7 @@ class Category:
         @return: Category object
         """
         with get_session() as session:
-            category = CategoryModel(last_layer=last_layer, last_room=last_room)
+            category = CategoryModel(name=name)
             session.add(category)
             session.commit()
             session.flush()
@@ -55,8 +55,7 @@ class Category:
         with get_session() as sess:
             sess.query(CategoryModel).filter_by(id=int(target_id)).update(
                     {
-                        CategoryModel.last_layer : new_obj.last_layer,
-                        CategoryModel.last_room : new_obj.last_room,
+                        CategoryModel.name: new_obj.name,
                     }
                 )
             sess.commit()

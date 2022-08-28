@@ -28,7 +28,7 @@ class Outcome:
         return outcome
 
     @staticmethod
-    async def add(last_layer:int, last_room:int)-> OutcomeModel:
+    async def add(category_id: int, transaction_id: int, detail_item:int, amount:int) -> OutcomeModel:
         """
         Create Outcome object and add it to the database
         @param last_layer: Outcome last_layer
@@ -36,7 +36,7 @@ class Outcome:
         @return: Outcome object
         """
         with get_session() as session:
-            outcome = OutcomeModel(last_layer=last_layer, last_room=last_room)
+            outcome = OutcomeModel(category_id=category_id, transaction_id=transaction_id, detail_item=detail_item, amount=amount)
             session.add(outcome)
             session.commit()
             session.flush()
