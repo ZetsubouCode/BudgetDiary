@@ -3,7 +3,7 @@ from datetime import date
 from __database import get_session
 from model.database import Income as IncomeModel
 from utils import Debug, DebugLevel
-from ..model.enum import IncomeType
+from model.enum import IncomeType
 
 class Income:
     @staticmethod
