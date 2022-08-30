@@ -3,7 +3,7 @@ from discord.ext import commands
 from function.Command import Command as CommandFunction
 from _env import ENV
 
-list_command = ['!help','!menu','!add_category','!add_outcome','!add_income','!get_daily_expense'
+list_command = ['!help','!menu','!add_category','!add_outcome','!add_income','!get_daily_expense', '!get_monthly_expense',
                 '!get_saving','!get_detail_saving','!this_month_budget','!get_remaining_money']
 
 client = commands.Bot(command_prefix='!',intents=discord.Intents.all())
