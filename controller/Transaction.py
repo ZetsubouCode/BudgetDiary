@@ -28,7 +28,7 @@ class Transaction:
         return transaction
 
     @staticmethod
-    async def add(total:int, date_transaction:date)-> TransactionModel:
+    async def add(total:int=None, date_transaction:date=None)-> TransactionModel:
         """
         Create Transaction object and add it to the database
         @param last_layer: Transaction last_layer

@@ -1,5 +1,7 @@
 from typing import List, Optional
+from sqlalchemy.sql import func
 from datetime import date
+from sqlalchemy.orm import joinedload
 from __database import get_session
 from model.database import Outcome as OutcomeModel
 from utils import Debug, DebugLevel
@@ -14,6 +16,45 @@ class Outcome:
         """
         with get_session() as session:
             outcome = session.query(OutcomeModel).filter_by(id=target_id).first()
+
+        return outcome
+
+    @staticmethod
+    async def get_expense() -> OutcomeModel:
+        """
+        Get the first result of Outcome by its id
+        @param target_id: The id of the Outcome data
+        @return: Outcome object
+        """
+        with get_session() as session:
+            outcome = session.query(func.sum(OutcomeModel.amount).label("amount")).all()
+
+        return outcome
+    
+    @staticmethod
+    async def get_daily_expense(target_date: date) -> OutcomeModel:
+        """
+        Get the first result of Outcome by its id
+        @param target_id: The id of the Outcome data
+        @return: Outcome object
+        """
+        with get_session() as session:
+            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category)
+            ).filter_by(date_created=target_date).all()
+
+        return outcome
+    
+    @staticmethod
+    async def get_monthly_expense(target_date: date) -> OutcomeModel:
+        """
+        Get the first result of Outcome by its id
+        @param target_id: The id of the Outcome data
+        @return: Outcome object
+        """
+        first_date = target_date.replace(day=1)
+        with get_session() as session:
+            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category)
+            ).filter(OutcomeModel.date_created>=first_date).all()
 
         return outcome
     

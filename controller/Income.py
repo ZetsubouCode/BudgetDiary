@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import date
+from sqlalchemy.sql import func
 from __database import get_session
 from model.database import Income as IncomeModel
 from utils import Debug, DebugLevel
@@ -26,6 +27,16 @@ class Income:
         """
         with get_session() as session:
             income = session.query(IncomeModel).all()
+        return income
+
+    @staticmethod
+    async def get_saving() -> List[IncomeModel]:
+        """
+        Get all result of Income data
+        @return: List of Income object
+        """
+        with get_session() as session:
+            income = session.query(func.sum(IncomeModel.amount).label("amount")).all()
         return income
 
     @staticmethod
