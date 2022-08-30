@@ -3,6 +3,9 @@ from discord.ext import commands
 from function.Command import Command as CommandFunction
 from _env import ENV
 
+list_command = ['!help','!menu','!add_category','!add_outcome','!add_income','!get_daily_expense'
+                '!get_saving','!get_detail_saving','!this_month_budget','!get_remaining_money']
+
 client = commands.Bot(command_prefix='!',intents=discord.Intents.all())
 @client.event
 async def on_ready():
@@ -12,7 +15,9 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user or message.channel.name != 'bot-test':
         return
-    print(message.content)
+
+    if message.content not in list_command and message.content.startswith('!'):
+        await message.channel.send("There's no such command! Maybe you should use some `!help` :eye::lips::eye:")
     if message.content.startswith("!help"):
         await message.channel.send(await CommandFunction.help())
 
