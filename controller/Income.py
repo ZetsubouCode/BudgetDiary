@@ -30,6 +30,17 @@ class Income:
         return income
 
     @staticmethod
+    async def get_this_month_saving(first_date:date, last_date:date) -> List[IncomeModel]:
+        """
+        Get all result of Income data
+        @return: List of Income object
+        """
+        with get_session() as session:
+            income = session.query(func.sum(IncomeModel.amount).label("amount")
+            ).filter(IncomeModel.date_created>=first_date,IncomeModel.date_created<=last_date).all()
+        return income
+
+    @staticmethod
     async def get_saving() -> List[IncomeModel]:
         """
         Get all result of Income data

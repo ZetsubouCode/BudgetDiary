@@ -45,16 +45,15 @@ class Outcome:
         return outcome
     
     @staticmethod
-    async def get_monthly_expense(target_date: date) -> OutcomeModel:
+    async def get_monthly_expense(first_date: date, last_date: date) -> OutcomeModel:
         """
         Get the first result of Outcome by its id
         @param target_id: The id of the Outcome data
         @return: Outcome object
         """
-        first_date = target_date.replace(day=1)
         with get_session() as session:
             outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category)
-            ).filter(OutcomeModel.date_created>=first_date).all()
+            ).filter(OutcomeModel.date_created>=first_date,OutcomeModel.date_created<=last_date).all()
 
         return outcome
     
