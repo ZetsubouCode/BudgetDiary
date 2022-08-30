@@ -20,24 +20,30 @@ async def on_message(message):
         await message.channel.send(await CommandFunction.list_menu())
 
     if message.content.startswith('!add_category'):
-        await message.channel.send(await CommandFunction.list_menu())
+        await message.channel.send(await CommandFunction.add_category(client,message))
 
     if message.content.startswith('!add_outcome'):
-        await message.channel.send(await CommandFunction.list_menu())
+        await message.channel.send(await CommandFunction.add_outcome(client,message))
 
     if message.content.startswith('!add_income'):
         await message.channel.send(await CommandFunction.add_income(client,message))
 
     if message.content.startswith('!get_daily_expense'):
-        await message.channel.send(await CommandFunction.list_menu())
+        await message.channel.send(await CommandFunction.get_daily_expense(client,message))
 
     if message.content.startswith('!get_monthly_expense'):
-        await message.channel.send(await CommandFunction.list_menu())
+        await message.channel.send(await CommandFunction.get_monthly_expense(client,message))
 
     if message.content.startswith('!get_saving'):
-        await message.channel.send(await CommandFunction.list_menu())
+        await message.channel.send(await CommandFunction.get_saving(client,message))
 
     if message.content.startswith('!get_detail_saving'):
-        await message.channel.send(await CommandFunction.list_menu())
+        await message.channel.send(await CommandFunction.get_detail_saving(client,message))
+
+    if message.content.startswith('!this_month_budget'):
+        await message.channel.send(await CommandFunction.this_month_budget(client,message))
+
+    if message.content.startswith('!get_remaining_money'):
+        await message.channel.send(await CommandFunction.get_remaining_money(client,message))
 
 client.run(ENV.TOKEN)
