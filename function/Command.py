@@ -136,8 +136,9 @@ class Command:
 
     async def this_month_budget(client, message):
         '''Menu 11'''
+        data = date.today()
         input = f"**This Month Budget**\n"
         await message.channel.send(input)
-        response = await IncomeFunction.get_saving()
-        return f"Rp {response}"
+        response = await IncomeFunction.get_this_month_saving(data)
+        return response
     
