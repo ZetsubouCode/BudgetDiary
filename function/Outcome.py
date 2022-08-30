@@ -14,7 +14,7 @@ class Outcome:
         date_converted = date.strftime(outcome[0].date_created, "%d-%m-%Y")
         message = f"**DAILY EXPENSE ON** {date_converted}\n"
         for index, data in enumerate(outcome):
-            message+= f"{index+1}. Beli {data.detail_item} ({data.category.name}) Rp {data.amount}\n"
+            message+= f"{index+1}. {data.detail_item} ({data.category.name}) Rp {data.amount}\n"
 
         return message
 
@@ -28,7 +28,7 @@ class Outcome:
                 date_converted = date.strftime(data.date_created, "%d-%m-%Y")
                 message += f"**{date_converted}**\n"
                 date_data = data.date_created
-            message+= f"{index+1}. Beli {data.detail_item} ({data.category.name}) Rp {data.amount}\n"
+            message+= f"{index+1}. {data.detail_item} ({data.category.name}) Rp {data.amount}\n"
 
         return message
 
