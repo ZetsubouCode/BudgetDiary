@@ -5,7 +5,11 @@ class Income:
         data = msg.split("-")
         transaction = await TransactionController.add()
         print(data)
-        await IncomeController.add(transaction.id,data[0],data[1],data[2])
+        if len(data)==3:
+            detail = data[2]
+        else:
+            detail = None
+        await IncomeController.add(transaction.id,data[0],data[1],detail)
         return f"Success add {data[0]} to balance"
 
     async def get_saving():
