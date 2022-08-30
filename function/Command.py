@@ -80,7 +80,19 @@ class Command:
     
     async def add_income(client, message):
         '''Menu 5'''
-        data = await Command.get_input(client, message)
+        input = "```Input example (amount-type name-detail if any) => 69420-CASH-NICE```"
+        type = '''**INCOME LIST TYPE**
+        \n1. BANK BCA
+        \n2. BANK ALADIN
+        \n3. GIFT
+        \n4. CASH
+        \n5. GOPAY
+        \n6. OVO
+        \n7. SHOPEE PAY
+        '''
+        await message.channel.send(type)
+        await message.channel.send(input)
+        message = await Command.get_input(client, message)
         response =await IncomeFunction.add(message.content)
         return response
     
