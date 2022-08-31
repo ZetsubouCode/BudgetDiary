@@ -30,6 +30,19 @@ class Outcome:
             outcome = session.query(func.sum(OutcomeModel.amount).label("amount")).all()
 
         return outcome
+
+    @staticmethod
+    async def get_last_expense(data_date:date) -> OutcomeModel:
+        """
+        Get the first result of Outcome by its id
+        @param target_id: The id of the Outcome data
+        @return: Outcome object
+        """
+        with get_session() as session:
+            outcome = session.query(func.sum(OutcomeModel.amount).label("amount")
+            ).filter(OutcomeModel.date_created<data_date).all()
+
+        return outcome
     
     @staticmethod
     async def get_daily_expense(target_date: date) -> OutcomeModel:

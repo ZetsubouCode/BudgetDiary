@@ -51,6 +51,17 @@ class Income:
         return income
 
     @staticmethod
+    async def get_last_saving(data_date:date) -> List[IncomeModel]:
+        """
+        Get all result of Income data
+        @return: List of Income object
+        """
+        with get_session() as session:
+            income = session.query(func.sum(IncomeModel.amount).label("amount")
+            ).filter(IncomeModel.date_created<data_date).all()
+        return income
+
+    @staticmethod
     async def add(transaction_id:int, amount:int, type:IncomeType, detail:str)-> IncomeModel:
         """
         Create Income object and add it to the database
