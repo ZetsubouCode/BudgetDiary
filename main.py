@@ -3,8 +3,8 @@ from discord.ext import commands
 from function.Command import Command as CommandFunction
 from _env import ENV
 
-list_command = ['!help','!menu','!add_category','!add_outcome','!add_income','!get_daily_expense', '!get_monthly_expense',
-                '!get_saving','!get_detail_saving','!this_month_budget','!get_remaining_money']
+list_command = ['!help','!menu','!add_category','!add_outcome','!add_income','!daily_expense', '!monthly_expense',
+                '!saving','!detail_saving','!budget','!remaining_money']
 
 client = commands.Bot(command_prefix='!',intents=discord.Intents.all())
 @client.event
@@ -33,22 +33,22 @@ async def on_message(message):
     if message.content.startswith('!add_income'):
         await message.channel.send(await CommandFunction.add_income(client,message))
 
-    if message.content.startswith('!get_daily_expense'):
+    if message.content.startswith('!daily_expense'):
         await message.channel.send(await CommandFunction.get_daily_expense(client,message))
 
-    if message.content.startswith('!get_monthly_expense'):
+    if message.content.startswith('!monthly_expense'):
         await message.channel.send(await CommandFunction.get_monthly_expense(client,message))
 
-    if message.content.startswith('!get_saving'):
+    if message.content.startswith('!saving'):
         await message.channel.send(await CommandFunction.get_saving(client,message))
 
-    if message.content.startswith('!get_detail_saving'):
+    if message.content.startswith('!detail_saving'):
         await message.channel.send(await CommandFunction.get_detail_saving(client,message))
 
-    if message.content.startswith('!this_month_budget'):
+    if message.content.startswith('!budget'):
         await message.channel.send(await CommandFunction.this_month_budget(client,message))
 
-    if message.content.startswith('!get_remaining_money'):
+    if message.content.startswith('!remaining_money'):
         await message.channel.send(await CommandFunction.get_remaining_money(client,message))
 
 client.run(ENV.TOKEN)
