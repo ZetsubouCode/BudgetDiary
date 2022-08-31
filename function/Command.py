@@ -1,7 +1,7 @@
 from .Income import Income as IncomeFunction
 from .Outcome import Outcome as OutcomeFunction
 from .Category import Category as CategoryFunction
-from datetime import date
+from datetime import date,datetime
 class Command:
 
     async def get_input(client, message, condition=True):
@@ -24,12 +24,12 @@ class Command:
         \n3. !add_category
         \n4. !add_outcome
         \n5. !add_income
-        \n6. !get_daily_expense
-        \n7. !get_monthly_expense
-        \n8. !get_saving
-        \n9. !get_detail_saving
-        \n10. !get_remaining_money
-        \n11. !this_month_budget'''
+        \n6. !daily_expense
+        \n7. !monthly_expense
+        \n8. !saving
+        \n9. !detail_saving
+        \n10. !remaining_money
+        \n11. !budget'''
         return data
 
     async def list_menu():
@@ -65,8 +65,8 @@ class Command:
         input = "```Input example (name) => steam wallet```"
         await message.channel.send(input)
         message = await Command.get_input(client, message)
-        response =await IncomeFunction.add(message.content)
-        return response
+        response =await CategoryFunction.add(message.content)
+        return f"Success add {message.content}"
     
     async def add_outcome(client, message):
         '''Menu 4'''
@@ -98,10 +98,12 @@ class Command:
     
     async def get_daily_expense(client, message):
         '''Menu 6'''
-        input ="```Input example (yyyy-mm-dd) => 2022-10-15```\nInput date :"
+        input ="```Input example (dd-mm-yyyy) => 15-10-2022```\nInput date :"
         await message.channel.send(input)
         data = await Command.get_input(client, message)
-        response = await OutcomeFunction.get_daily_expense(data.content)
+        input_date = datetime.strptime(data.content,"%d-%m-%Y")
+        input_date = datetime.strftime(input_date, "%Y-%m-%d")
+        response = await OutcomeFunction.get_daily_expense(input_date)
         return response
         
     async def get_monthly_expense(client, message):
@@ -116,8 +118,8 @@ class Command:
         '''Menu 8'''
         input = f"**Current Money**\n"
         await message.channel.send(input)
-        response = await IncomeFunction.get_saving()
-        return f"Rp {response}"
+        response, formatting = await IncomeFunction.get_saving()
+        return f"Rp {formatting}"
     
     async def get_detail_saving(client, message):
         '''Menu 9'''
@@ -130,15 +132,19 @@ class Command:
         '''Menu 10'''
         input = f"**Remaining Money**\n"
         await message.channel.send(input)
-        saving = await IncomeFunction.get_saving()
-        expense = await OutcomeFunction.get_expense()
-        return f"Rp {saving-expense}"
+        saving, formatting = await IncomeFunction.get_saving()
+        expense, formatting = await OutcomeFunction.get_expense()
+        total = "{:,}".format(saving-expense).replace(",",".")
+        return f"Rp {total}"
 
     async def this_month_budget(client, message):
         '''Menu 11'''
         data = date.today()
         input = f"**This Month Budget**\n"
         await message.channel.send(input)
-        response = await IncomeFunction.get_this_month_saving(data)
+        saving = await IncomeFunction.get_last_saving()
+        expense = await OutcomeFunction.get_last_expense()
+        remaining = saving - expense
+        response = await IncomeFunction.get_this_month_saving(data, remaining)
         return response
     
