@@ -20,7 +20,7 @@ class Outcome:
         return outcome
 
     @staticmethod
-    async def get_expense() -> OutcomeModel:
+    async def get_outcome() -> OutcomeModel:
         """
         Get the first result of Outcome by its id
         @param target_id: The id of the Outcome data
@@ -32,7 +32,7 @@ class Outcome:
         return outcome
 
     @staticmethod
-    async def get_last_expense(data_date:date) -> OutcomeModel:
+    async def get_last_outcome(data_date:date) -> OutcomeModel:
         """
         Get the first result of Outcome by its id
         @param target_id: The id of the Outcome data
@@ -45,28 +45,41 @@ class Outcome:
         return outcome
     
     @staticmethod
-    async def get_daily_expense(target_date: date) -> OutcomeModel:
+    async def get_daily_outcome(target_date: date) -> OutcomeModel:
         """
         Get the first result of Outcome by its id
         @param target_id: The id of the Outcome data
         @return: Outcome object
         """
         with get_session() as session:
-            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category)
+            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category), joinedload(OutcomeModel.income_type)
             ).filter_by(date_created=target_date).all()
 
         return outcome
     
     @staticmethod
-    async def get_monthly_expense(first_date: date, last_date: date) -> OutcomeModel:
+    async def get_monthly_outcome(first_date: date, last_date: date) -> OutcomeModel:
         """
         Get the first result of Outcome by its id
         @param target_id: The id of the Outcome data
         @return: Outcome object
         """
         with get_session() as session:
-            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category)
-            ).filter(OutcomeModel.date_created>=first_date,OutcomeModel.date_created<=last_date).all()
+            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category), joinedload(OutcomeModel.income_type)
+            ).filter(OutcomeModel.date_created>=first_date,OutcomeModel.date_created<=last_date).order_by(OutcomeModel.date_created).all()
+
+        return outcome
+
+    @staticmethod
+    async def get_monthly_total(first_date: date, last_date: date) -> OutcomeModel:
+        """
+        Get the first result of Outcome by its id
+        @param target_id: The id of the Outcome data
+        @return: Outcome object
+        """
+        with get_session() as session:
+            outcome = session.query(func.sum(OutcomeModel.amount).label("amount")).filter(
+                OutcomeModel.date_created>=first_date,OutcomeModel.date_created<=last_date).all()
 
         return outcome
     
@@ -81,7 +94,7 @@ class Outcome:
         return outcome
 
     @staticmethod
-    async def add(category_id: int, transaction_id: int, detail_item:int, amount:int) -> OutcomeModel:
+    async def add(category_id: int, income_type_id:int, detail_item:str, amount:int, date_created:date) -> OutcomeModel:
         """
         Create Outcome object and add it to the database
         @param last_layer: Outcome last_layer
@@ -89,7 +102,7 @@ class Outcome:
         @return: Outcome object
         """
         with get_session() as session:
-            outcome = OutcomeModel(category_id=category_id, transaction_id=transaction_id, detail_item=detail_item, amount=amount)
+            outcome = OutcomeModel(category_id=category_id, income_type_id=income_type_id,date_created=date_created, detail_item=detail_item, amount=amount)
             session.add(outcome)
             session.commit()
             session.flush()
@@ -108,8 +121,9 @@ class Outcome:
         with get_session() as sess:
             sess.query(OutcomeModel).filter_by(id=int(target_id)).update(
                     {
-                        OutcomeModel.last_layer : new_obj.last_layer,
-                        OutcomeModel.last_room : new_obj.last_room,
+                        OutcomeModel.category_id: new_obj.category_id,
+                        OutcomeModel.income_type_id: new_obj.income_type_id,
+                        
                     }
                 )
             sess.commit()

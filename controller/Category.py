@@ -1,5 +1,4 @@
-from typing import List, Optional
-from datetime import date
+from typing import List
 from __database import get_session
 from model.database import Category as CategoryModel
 from utils import Debug, DebugLevel

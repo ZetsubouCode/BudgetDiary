@@ -1,10 +1,10 @@
-from typing import List, Optional
+from typing import List
 from datetime import date
 from sqlalchemy.sql import func
+from sqlalchemy.orm import joinedload
 from __database import get_session
 from model.database import Income as IncomeModel
 from utils import Debug, DebugLevel
-from model.enum import IncomeType
 
 class Income:
     @staticmethod
@@ -18,6 +18,20 @@ class Income:
             income = session.query(IncomeModel).filter_by(id=target_id).first()
 
         return income
+
+    @staticmethod
+    async def get_by_income_type_and_date(income_type_id: int, first_date:date, last_date:date) -> IncomeModel:
+        """
+        Get the first result of Income by its id
+        @param target_id: The id of the Income data
+        @return: Income object
+        """
+        with get_session() as session:
+            income = session.query(IncomeModel).filter(
+                IncomeModel.income_type_id==income_type_id,
+                IncomeModel.date_created>=first_date,IncomeModel.date_created<=last_date).all()
+
+        return income
     
     @staticmethod
     async def get_all() -> List[IncomeModel]:
@@ -26,11 +40,23 @@ class Income:
         @return: List of Income object
         """
         with get_session() as session:
-            income = session.query(IncomeModel).all()
+            income = session.query(IncomeModel).options(joinedload(IncomeModel.income_type)).all()
         return income
 
     @staticmethod
-    async def get_this_month_saving(first_date:date, last_date:date) -> List[IncomeModel]:
+    async def get_monthly_income(first_date:date, last_date:date) -> List[IncomeModel]:
+        """
+        Get all result of Income data
+        @return: List of Income object
+        """
+        with get_session() as session:
+            income = session.query(IncomeModel).options(joinedload(IncomeModel.income_type)
+            ).filter(IncomeModel.date_created>=first_date,IncomeModel.date_created<=last_date,IncomeModel.amount>0
+            ).order_by(IncomeModel.date_created).all()
+        return income
+
+    @staticmethod
+    async def get_this_month_income(first_date:date, last_date:date) -> List[IncomeModel]:
         """
         Get all result of Income data
         @return: List of Income object
@@ -41,7 +67,7 @@ class Income:
         return income
 
     @staticmethod
-    async def get_saving() -> List[IncomeModel]:
+    async def get_daily_income() -> List[IncomeModel]:
         """
         Get all result of Income data
         @return: List of Income object
@@ -51,7 +77,7 @@ class Income:
         return income
 
     @staticmethod
-    async def get_last_saving(data_date:date) -> List[IncomeModel]:
+    async def get_last_income(data_date:date) -> List[IncomeModel]:
         """
         Get all result of Income data
         @return: List of Income object
@@ -62,7 +88,7 @@ class Income:
         return income
 
     @staticmethod
-    async def add(transaction_id:int, amount:int, type:IncomeType, detail:str)-> IncomeModel:
+    async def add(amount:int, date_created:date,income_type_id:int, detail:str)-> IncomeModel:
         """
         Create Income object and add it to the database
         @param last_layer: Income last_layer
@@ -70,7 +96,7 @@ class Income:
         @return: Income object
         """
         with get_session() as session:
-            income = IncomeModel(transaction_id=transaction_id, amount=amount, type=type, detail=detail)
+            income = IncomeModel(amount=amount, date_created=date_created, income_type_id=income_type_id, detail=detail)
             session.add(income)
             session.commit()
             session.flush()
@@ -89,14 +115,31 @@ class Income:
         with get_session() as sess:
             sess.query(IncomeModel).filter_by(id=int(target_id)).update(
                     {
-                        IncomeModel.transaction_id : new_obj.transaction_id,
+                        IncomeModel.income_type_id : new_obj.income_type_id,
+                        IncomeModel.date_created : new_obj.date_created,
                         IncomeModel.amount : new_obj.amount,
-                        IncomeModel.type : new_obj.type,
                         IncomeModel.detail : new_obj.detail,
                     }
                 )
             sess.commit()
         return new_obj
+
+    @staticmethod
+    async def reduce_amount_by_id(target_id: int, amount:int) -> IncomeModel:
+        """
+        Update Income object that have the specific id
+        @param taget_id: Income id
+        @param new_obj: Income Income new set of data
+        @return: Income object
+        """
+        with get_session() as sess:
+            sess.query(IncomeModel).filter_by(id=int(target_id)).update(
+                    {
+                        IncomeModel.amount : IncomeModel.amount-amount
+                    }
+                )
+            data = sess.commit()
+        return data
    
     @staticmethod
     async def delete_by_id(target_id: int):
