@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Text, text
+from sqlalchemy import Column, Date, Enum, ForeignKey, Text, String
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -12,27 +12,57 @@ class Category(Base):
 
     id = Column(INTEGER(11), primary_key=True, autoincrement=True)
     name = Column(Text, nullable=False)
+    emoticon = Column(String(45), nullable=True)
 
 
-class Transaction(Base):
-    __tablename__ = 'transaction'
+
+class IncomeType(Base):
+    __tablename__ = 'income_type'
 
     id = Column(INTEGER(11), primary_key=True, autoincrement=True)
-    total = Column(INTEGER(11))
-    date_transaction = Column(Date)
+    name = Column(Text, nullable=False)
+
+
+class Limit(Base):
+    __tablename__ = 'limit'
+
+    id = Column(INTEGER(11), primary_key=True, autoincrement=True)
+    day_name = Column(Enum('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'), nullable=False)
+    limit_amount = Column(INTEGER(11), nullable=False)
+
+
+class BudgetPlan(Base):
+    __tablename__ = 'budget_plan'
+
+    id = Column(INTEGER(11), primary_key=True, nullable=False, autoincrement=True)
+    category_id = Column(ForeignKey('category.id'), primary_key=True, nullable=False, index=True)
+    date_buy = Column(Date, nullable=False)
+    detail = Column(Text)
+    amount = Column(INTEGER(11), nullable=False)
+
+    category = relationship('Category')
 
 
 class Income(Base):
     __tablename__ = 'income'
 
     id = Column(INTEGER(11), primary_key=True, nullable=False, autoincrement=True)
-    transaction_id = Column(ForeignKey('transaction.id'), primary_key=True, nullable=False, index=True)
-    date_created = Column(Date, nullable=False, server_default=text("curdate()"))
+    income_type_id = Column(ForeignKey('income_type.id'), primary_key=True, nullable=False, index=True)
+    date_created = Column(Date, nullable=False)
     amount = Column(INTEGER(11), nullable=False)
-    type = Column(Enum('BANK BCA', 'BANK ALADIN', 'GIFT', 'CASH', 'GOPAY', 'OVO', 'SHOPEE PAY'), nullable=False)
     detail = Column(Text)
 
-    transaction = relationship('Transaction')
+    income_type = relationship('IncomeType')
+
+
+class LimitPlan(Base):
+    __tablename__ = 'limit_plan'
+
+    id = Column(INTEGER(11), primary_key=True, nullable=False, autoincrement=True)
+    limit_id = Column(ForeignKey('limit.id'), primary_key=True, nullable=False, index=True)
+    name = Column(Text, nullable=False)
+
+    limit = relationship('Limit')
 
 
 class Outcome(Base):
@@ -40,10 +70,21 @@ class Outcome(Base):
 
     id = Column(INTEGER(11), primary_key=True, nullable=False, autoincrement=True)
     category_id = Column(ForeignKey('category.id'), primary_key=True, nullable=False, index=True)
-    transaction_id = Column(ForeignKey('transaction.id'), index=True)
+    income_type_id = Column(ForeignKey('income_type.id'), primary_key=True, nullable=False, index=True)
     detail_item = Column(Text)
     amount = Column(INTEGER(11), nullable=False)
-    date_created = Column(DateTime, nullable=False, server_default=text("curdate()"))
+    date_created = Column(Date, nullable=False)
 
     category = relationship('Category')
-    transaction = relationship('Transaction')
+    income_type = relationship('IncomeType')
+
+
+class SavingPlan(Base):
+    __tablename__ = 'saving_plan'
+
+    id = Column(INTEGER(11), primary_key=True, nullable=False, autoincrement=True)
+    income_type_id = Column(ForeignKey('income_type.id'), primary_key=True, nullable=False, index=True)
+    date_saving = Column(Date, nullable=False)
+    amount = Column(INTEGER(11), nullable=False)
+
+    income_type = relationship('IncomeType')
