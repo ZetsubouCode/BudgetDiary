@@ -1,6 +1,5 @@
 import os
 from _env import ENV
-from urllib.parse import quote_plus as urlquote
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -17,7 +16,8 @@ engine = create_engine(
     pool_size=500,
     max_overflow=500,
     echo=False,
-    pool_recycle=280
+    pool_recycle=280,
+    connect_args={'connect_timeout': 10}
 )
 
 
