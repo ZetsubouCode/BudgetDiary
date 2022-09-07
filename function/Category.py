@@ -8,5 +8,12 @@ class Category:
         category = await CategoryController.get_all()
         message = "**LIST CATEGORY\n**"
         for data in category:
-            message += f"{data.id}. {data.name}\n"
+            if data.emoticon is None:
+                emot = ""
+            else :
+                emot = data.emoticon+" "
+            message += f"{data.id}. {emot}{data.name}\n"
         return message
+
+    async def get_all_raw():
+        return await CategoryController.get_all()
