@@ -27,7 +27,7 @@ class Category:
         return category
 
     @staticmethod
-    async def add(name:str)-> CategoryModel:
+    async def add(name:str,emoticon:str)-> CategoryModel:
         """
         Create Category object and add it to the database
         @param last_layer: Category last_layer
@@ -35,7 +35,7 @@ class Category:
         @return: Category object
         """
         with get_session() as session:
-            category = CategoryModel(name=name)
+            category = CategoryModel(name=name,emoticon=emoticon)
             session.add(category)
             session.commit()
             session.flush()
