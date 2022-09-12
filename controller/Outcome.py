@@ -4,6 +4,7 @@ from datetime import date
 from sqlalchemy.orm import joinedload
 from __database import get_session
 from model.database import Outcome as OutcomeModel
+from model.database import IncomeType as IncomeTypeModel
 from utils import Debug, DebugLevel
 
 class Outcome:
@@ -69,6 +70,21 @@ class Outcome:
             ).filter(OutcomeModel.date_created>=first_date,OutcomeModel.date_created<=last_date).order_by(OutcomeModel.date_created).all()
 
         return outcome
+
+    @staticmethod
+    async def get_group_outcome() -> List[OutcomeModel]:
+        """
+        Get all result of Outcome data
+        @return: List of Outcome object
+        """
+        with get_session() as session:
+            income = session.query(
+                func.sum(OutcomeModel.amount).label("amount"),
+                IncomeTypeModel.name.label("name")).join(
+                    IncomeTypeModel).group_by(
+                            IncomeTypeModel.name
+            ).order_by(IncomeTypeModel.name).all()
+        return income
 
     @staticmethod
     async def get_monthly_total(first_date: date, last_date: date) -> OutcomeModel:
