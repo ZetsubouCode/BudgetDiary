@@ -7,6 +7,7 @@ from .Limit import Limit as LimitFunction
 from .BudgetPlan import BudgetPlan as BudgetPlanFunction
 from .SavingPlan import SavingPlan as SavingPlanFunction
 from datetime import date,datetime
+from temp_db import temp_db
 class Command:
 
     async def get_input(client, message, condition=True):
@@ -35,10 +36,12 @@ class Command:
         \n8. !daily_income
         \n9. !monthly_income
         \n10. !budget
+        \n11. !detail_budget
         \n11. !add_outcome_plan (development)
         \n12. !check_plan (development)
         \n13. !add_saving (development)
-        \n14. !ars (development)'''
+        \n14. !ars (development)
+        \n15. !transfer'''
         return data
 
     async def list_menu():
@@ -59,19 +62,21 @@ class Command:
         \nMerupakan menu untuk melihat data pengeluaran harian
         \n7. Get Monthly Outcome
         \nMerupakan menu untuk melihat data pengeluaran bulanan
-        \n8. Get Saving
+        \n8. Get Daily Income
         \nMerupakan menu untuk melihat uang yang dimiliki
-        \n9. Get Detail Saving
+        \n9. Get Monthly Income
         \nMerupakan menu untuk melihat list data pemasukkan
         \n10. Get Budget
         \nMerupakan menu untuk melihat sisa uang yang dimiliki
-        \n11. Lorem ipsum
+        \n11. Get List Budget
         \nRed fox fly Over a stick
         \n12. Lorem ipsum
         \nRed fox fly Over a stick
         \n13. Lorem ipsum
         \nRed fox fly Over a stick
         \n14. Lorem ipsum
+        \nRed fox fly Over a stick
+        \n15. Lorem ipsum
         \nRed fox fly Over a stick
         '''
         return data
@@ -84,11 +89,12 @@ class Command:
 
     async def add_category(client, message):
         '''Menu 3'''
-        input = "```Input example (name#emoticon[**optional**]) => steam wallet#:smile:```"
+        input = "```Input example (name#emoticon[**optional**]) => steam wallet#smile```"
         await message.channel.send(input)
         message = await Command.get_input(client, message)
         response = await CategoryFunction.add(message.content)
         if response:
+          temp_db._category = CategoryFunction.get_all_raw()
           m = f"Success add {message.content}"
         else:
           m = f"Failed to add Category"
@@ -96,10 +102,10 @@ class Command:
     
     async def add_outcome(client, message):
         '''Menu 4'''
-        category = await CategoryFunction.get_all()
+        category = await CategoryFunction.get_all_temp()
         await message.channel.send(category)
 
-        income_type = await IncomeTypeFunction.get_all()
+        income_type = await IncomeTypeFunction.get_all_temp()
         await message.channel.send(income_type)
         
         input = "```Input example (category_id#income_type_id#detail#amount#date[optional]) => 1#2#buy padang food#29000#30-08-2022```"
@@ -111,26 +117,26 @@ class Command:
     
     async def add_income(client, message):
         '''Menu 5'''
-        income_type = await IncomeTypeFunction.get_all()
+        income_type = await IncomeTypeFunction.get_all_temp()
         await message.channel.send(income_type)
 
         input = "```Input example (amount#income_type_id#detail[optional]#date[optional]) => 69420#CASH#NICE#30-08-2022```"
         await message.channel.send(input)
 
         message = await Command.get_input(client, message)
-        response =await IncomeFunction.add(message.content)
+        response = await IncomeFunction.add(message.content)
         return response
 
     async def add_budget_plan(client, message):
         '''Menu 6'''
-        income_type = await CategoryFunction.get_all()
+        income_type = await IncomeTypeFunction.get_all_temp()
         await message.channel.send(income_type)
 
         input = "```Input example (category_id#date_buy(DD-MM-YYYY)#amount#detail[optional]) => 1#30-08-2022#5000#beli cimol```"
         await message.channel.send(input)
 
         message = await Command.get_input(client, message)
-        response =await BudgetPlanFunction.add(message.content)
+        response = await BudgetPlanFunction.add(message.content)
         return response
 
     async def get_monthly_budget_plan(client, message):
@@ -150,7 +156,7 @@ class Command:
 
     async def add_saving_plan(client, message):
         '''Menu 7'''
-        income_type = await IncomeTypeFunction.get_all()
+        income_type = temp_db._income_type
         await message.channel.send(income_type)
 
         input = "```Input example (category_id#month_saving(M)#amount) => 1#8#5000```"
@@ -162,7 +168,7 @@ class Command:
 
     async def add_limit_plan(client, message):
         '''Menu 8'''
-        income_type = await IncomeTypeFunction.get_all()
+        income_type = await IncomeTypeFunction.get_all_temp()
         await message.channel.send(income_type)
 
         input = "```Input example (amount#income_type_id#detail[optional]#date[optional]) => 69420#CASH#NICE#30-08-2022```"
@@ -195,6 +201,7 @@ class Command:
         input_date = datetime.strftime(input_date, "%Y-%m-%d")
         input_date = datetime.strptime(input_date, "%Y-%m-%d")
         response = await OutcomeFunction.get_monthly_outcome(input_date)
+        # response = await Command.text_split(response)
         return response
 
     async def get_outcome_report(client, message):
@@ -269,7 +276,7 @@ class Command:
 
     async def transfer(client, message):
         '''Menu 5'''
-        income_type = await IncomeTypeFunction.get_all()
+        income_type = await IncomeTypeFunction.get_all_temp()
         await message.channel.send(income_type)
 
         input = "```Input example (id_source#amount#id_destination) => 1#69420#5```"
@@ -278,5 +285,35 @@ class Command:
         message = await Command.get_input(client, message)
         response =await IncomeFunction.transfer(message.content)
         return response
+
+    async def detail_budget(client, message):
+      '''Menu X'''
+      msg1, income = await IncomeFunction.get_group_income()
+      msg2, outcome =  await OutcomeFunction.get_group_outcome()
+      final_data=[]
+      index=0
+      for data in income:
+        if data.name == outcome[index].name:
+          amount = data.amount - outcome[index].amount
+          final_data.append((amount,data.name))
+          index+=1
+        else :
+          final_data.append((data.amount,data.name))
+          
+      msg1="**INCOME**\n"+msg1
+      msg2="**OUTCOME**\n"+msg2
+      msg3="**REMAIN MONEY**\n"
+      index=0
+      
+      for amount,name in final_data:
+        amount = "{:,}".format(amount).replace(",", ".")
+        msg3 += f"{index+1}. Rp {amount} from {name}\n"
+        index+=1
+      return msg1+"\n"+msg2+"\n"+msg3
+
+    async def group_outcome(client, message):
+      '''Menu X'''
+      return await OutcomeFunction.get_group_outcome()
+      
         
     
