@@ -1,7 +1,8 @@
 class temp_db:
     _category =[]
     _income_type=[]
-
+    _category_dict ={}
+    _income_type_dict={}
     
     # def get_category(self):
     #     return self._category
