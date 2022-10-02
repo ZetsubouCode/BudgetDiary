@@ -49,7 +49,7 @@ class __Debug:
             except:
                 ...
 
-        content = "[{}][{}][{}] {}".format(str(identifier), get_current_strftime(), str(debug_level), c)
+        content = "[{}][{}][{}] {}".format(str(identifier), Util.get_current_strftime(), str(debug_level), c)
         if (debug_level == DebugLevel.INFO) or (debug_level == DebugLevel.WARNING):
             print(content, file=sys.stdout)
         else:
