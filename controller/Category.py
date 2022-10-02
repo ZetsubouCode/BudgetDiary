@@ -17,7 +17,7 @@ class Category:
         return category
     
     @staticmethod
-    async def get_all() -> List[CategoryModel]:
+    def get_all() -> List[CategoryModel]:
         """
         Get all result of Category data
         @return: List of Category object

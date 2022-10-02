@@ -1,40 +1,23 @@
 from controller.Outcome import Outcome as OutcomeController
 from datetime import timedelta, date, datetime
+from utils import Util
 
 class Outcome:
 
-    async def add(msg: str):
-        data = msg.split("#")
-        if len(data) > 5 or len(data) < 4:
-            return f"Input `{msg}` is not valid"
-        try:
-            test = int(data[3])
-        except ValueError as e:
-            return f"Not a valid number ({str(e)})"
-        if len(data) == 5:
-            try:
-                data_date = datetime.strptime(data[4], "%d-%m-%Y")
-                data_date = datetime.strftime(data_date, "%Y-%m-%d")
-            except ValueError as e:
-                return f"Incorrect data format, should be YYYY-MM-DD -> {str(e)}"
-        else:
-            data_date = date.today()
-        if data[0] == '7':
-            amount = -abs(int(data[3]))
-            await OutcomeController.add(amount, data_date, data[1],
+    async def add(outcome_type:int,income_type:int,amount:int,detail:str,date:str):
+        input_date = Util.date_validation(date)
+        if outcome_type == '7':
+            amount = -abs(int(amount))
+            await OutcomeController.add(amount, input_date, income_type,
                                         "Balancing balance amount")
-        await OutcomeController.add(data[0], data[1], data[2], data[3],
-                                    data_date)
+        await OutcomeController.add(outcome_type, income_type, detail, amount, input_date)
 
-        amount = "{:,}".format(int(data[3])).replace(",", ".")
-        return f"Spend Rp {amount} for {data[2]}"
+        amount = "{:,}".format(abs(int(amount))).replace(",", ".")
+        return f"Spend Rp {amount} for {detail}"
 
-    async def get_daily_outcome(msg):
-        try:
-            data_date = datetime.strptime(msg, "%Y-%m-%d")
-        except Exception as e:
-            return f"Date format is invalid -> {str(e)}"
-        outcome = await OutcomeController.get_daily_outcome(data_date)
+    async def get_daily_outcome(date:str):
+        input_date = Util.date_validation(date)
+        outcome = await OutcomeController.get_daily_outcome(input_date)
         if outcome:
             date_converted = datetime.strftime(outcome[0].date_created,
                                                "%d-%m-%Y")
@@ -43,43 +26,36 @@ class Outcome:
             message = "There's no outcome on this day"
         for index, data in enumerate(outcome):
             amount = "{:,}".format(data.amount).replace(",", ".")
-            message += f"{index+1}. [{data.category.name}] {data.detail_item} Rp {amount}\n"
+            message += f"{index+1}. [**{data.income_type.name}**] {data.category.emoticon} {data.detail_item} Rp {amount}\n"
 
         return message
 
-    async def get_monthly_outcome(data_date):
-        next_month = data_date.replace(day=28) + timedelta(days=4)
-        next_month = next_month - timedelta(days=next_month.day)
+    async def get_monthly_outcome_json(input_date):
+        temp={}
+        date_converted_a ,date_converted_b = Util.get_first_and_last_day(input_date)
         outcome = await OutcomeController.get_monthly_outcome(
-            data_date.replace(day=1), next_month)
+            date_converted_a ,date_converted_b)
         if outcome:
             date_converted = datetime.strftime(outcome[0].date_created, "%B")
-            message = f"**MONTHLY OUTCOME ON {date_converted}**\n"
+            title= f"**MONTHLY OUTCOME ON {date_converted}**\n"
         else:
             return "There's no outcome on this month"
         date_data = ""
-        list_message = []
         for index, data in enumerate(outcome):
             if date_data != data.date_created:
-                date_converted = datetime.strftime(data.date_created,
-                                                   "%d-%m-%Y")
-                data_message = f"**{date_converted}**\n"
-                if len(message+data_message) > 2000:
-                  list_message.append(message)
-                  message = ""
-                message += data_message
+                date_converted = datetime.strftime(data.date_created,"%d-%m-%Y")
+                data_message = date_converted
                 date_data = data.date_created
-
+                
             amount = "{:,}".format(data.amount).replace(",", ".")
-            data_message = f"{index+1}. [**{data.category.name}**] {data.detail_item} Rp {amount}\n"
-            if len(message+data_message) > 2000:
-              list_message.append(message)
-              message = ""
-            message += data_message
+            key = f"Transaction {index+1}"
+            data = f"{data.category.emoticon}  [**{data.income_type.name}**] {data.detail_item} Rp {amount}\n"
+            if str(data_message) not in temp:
+                temp.update({str(data_message):{key:data}})
+            else :
+                temp[str(data_message)][key] = data
 
-        list_message.append(message)
-          
-        return list_message
+        return title,temp
 
     async def get_group_outcome():
         outcome = await OutcomeController.get_group_outcome()
@@ -101,8 +77,8 @@ class Outcome:
         return total, amount
 
     async def get_last_outcome():
-        data_date = date.today().replace(day=1)
-        outcome = await OutcomeController.get_last_outcome(data_date)
+        input_date = date.today().replace(day=1)
+        outcome = await OutcomeController.get_last_outcome(input_date)
         total = 0
         for i in outcome:
             if i.amount is None:

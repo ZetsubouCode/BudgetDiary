@@ -11,5 +11,5 @@ class IncomeType:
             message += f"{data.id}. {data.name}\n"
         return message
 
-    async def get_all_raw():
-        return await IncomeTypeController.get_all()
+    def get_all_raw():
+        return IncomeTypeController.get_all()

@@ -47,6 +47,18 @@ class Income:
             income = session.query(IncomeModel).options(
                 joinedload(IncomeModel.income_type)).all()
         return income
+        
+    @staticmethod
+    async def get_daily_income(date:date) -> List[IncomeModel]:
+        """
+        Get all result of Income data
+        @return: List of Income object
+        """
+        with get_session() as session:
+            income = session.query(IncomeModel).options(
+                joinedload(IncomeModel.income_type)
+                ).filter(IncomeModel.date_created == date).all()
+        return income
 
     @staticmethod
     async def get_monthly_income(first_date: date,
@@ -91,17 +103,6 @@ class Income:
                 func.sum(IncomeModel.amount).label("amount")).filter(
                     IncomeModel.date_created >= first_date,
                     IncomeModel.date_created <= last_date).all()
-        return income
-
-    @staticmethod
-    async def get_daily_income() -> List[IncomeModel]:
-        """
-        Get all result of Income data
-        @return: List of Income object
-        """
-        with get_session() as session:
-            income = session.query(
-                func.sum(IncomeModel.amount).label("amount")).all()
         return income
 
     @staticmethod

@@ -81,50 +81,30 @@ class Command:
         '''
         return data
 
-    async def get_income_type():
-        return await IncomeTypeFunction.get_all_raw()
+    def get_income_type():
+        return IncomeTypeFunction.get_all_raw()
 
-    async def get_category():
-        return await CategoryFunction.get_all_raw()
+    def get_category():
+        return CategoryFunction.get_all_raw()
 
-    async def add_category(client, message):
+    async def add_category(name:str, emoticon:str):
         '''Menu 3'''
-        input = "```Input example (name#emoticon[**optional**]) => steam wallet#smile```"
-        await message.channel.send(input)
-        message = await Command.get_input(client, message)
-        response = await CategoryFunction.add(message.content)
+        response = await CategoryFunction.add(name, emoticon)
         if response:
           temp_db._category = CategoryFunction.get_all_raw()
-          m = f"Success add {message.content}"
+          m = f"Success add {name} :{emoticon}:"
         else:
           m = f"Failed to add Category"
         return m
     
-    async def add_outcome(client, message):
+    async def add_outcome(outcome_type:int,income_type:int,amount:int,detail:str,date:str):
         '''Menu 4'''
-        category = await CategoryFunction.get_all_temp()
-        await message.channel.send(category)
-
-        income_type = await IncomeTypeFunction.get_all_temp()
-        await message.channel.send(income_type)
-        
-        input = "```Input example (category_id#income_type_id#detail#amount#date[optional]) => 1#2#buy padang food#29000#30-08-2022```"
-        await message.channel.send(input)
-
-        message = await Command.get_input(client, message)
-        response =await OutcomeFunction.add(message.content)
+        response =await OutcomeFunction.add(outcome_type,income_type,amount,detail,date)
         return response
     
-    async def add_income(client, message):
+    async def add_income(income_type,amount,detail,date):
         '''Menu 5'''
-        income_type = await IncomeTypeFunction.get_all_temp()
-        await message.channel.send(income_type)
-
-        input = "```Input example (amount#income_type_id#detail[optional]#date[optional]) => 69420#CASH#NICE#30-08-2022```"
-        await message.channel.send(input)
-
-        message = await Command.get_input(client, message)
-        response = await IncomeFunction.add(message.content)
+        response = await IncomeFunction.add(income_type,amount,detail,date)
         return response
 
     async def add_budget_plan(client, message):
@@ -178,42 +158,31 @@ class Command:
         response =await LimitPlanFunction.add(message.content)
         return response
     
-    async def get_daily_outcome(client, message):
+    async def get_daily_outcome(date:str):
         '''Menu 9'''
-        input ="```Input example (dd-mm-yyyy) => 15-10-2022```\nInput date :"
-        await message.channel.send(input)
-        data = await Command.get_input(client, message)
-        input_date = datetime.strptime(data.content,"%d-%m-%Y")
-        input_date = datetime.strftime(input_date, "%Y-%m-%d")
-        response = await OutcomeFunction.get_daily_outcome(input_date)
+        response = await OutcomeFunction.get_daily_outcome(date)
         return response
         
-    async def get_monthly_outcome(client, message):
+    async def get_monthly_outcome(month):
         '''Menu 10'''
-        input ="```Input example (1~12) => 5```\nInput date month :"
-        await message.channel.send(input)
-        data = await Command.get_input(client, message)
-        if int(data.content) > 12 or int(data.content) < 1:
-          return f"Please input correctly. {data.content} is not valid"
+        if int(month) > 12 or int(month) < 1:
+          return f"Please input correctly. {month} is not valid"
           
         date_today = date.today()
-        input_date = date_today.replace(day=1,month=int(data.content))
+        input_date = date_today.replace(day=1,month=int(month))
         input_date = datetime.strftime(input_date, "%Y-%m-%d")
         input_date = datetime.strptime(input_date, "%Y-%m-%d")
-        response = await OutcomeFunction.get_monthly_outcome(input_date)
-        # response = await Command.text_split(response)
-        return response
+        # response = await OutcomeFunction.get_monthly_outcome(input_date)
+        title, response = await OutcomeFunction.get_monthly_outcome_json(input_date)
+        return title,response
 
-    async def get_outcome_report(client, message):
+    async def get_outcome_report(month):
         '''Menu 7'''
-        input ="```Input example (1~12) => 5```\nInput date month :"
-        await message.channel.send(input)
-        data = await Command.get_input(client, message)
-        if int(data.content) > 12 or int(data.content) < 1:
-          return f"Please input correctly. {data.content} is not valid"
+        if int(month) > 12 or int(month) < 1:
+          return f"Please input correctly. {month} is not valid"
           
         date_today = date.today()
-        input_date = date_today.replace(day=1,month=int(data.content))
+        input_date = date_today.replace(day=1,month=int(month))
         input_date = datetime.strftime(input_date, "%Y-%m-%d")
         input_date = datetime.strptime(input_date, "%Y-%m-%d")
         format_date = datetime.strftime(input_date, "%B %Y")
@@ -229,30 +198,24 @@ class Command:
             message = f"Outcome on {format_date} is on budget. Rp {diff_format} was saved on this month"
         return message
         
-    async def get_daily_income(client, message):
+    async def get_daily_income(date):
         '''Menu 11'''
-        input = f"**Current Money**\n"
-        await message.channel.send(input)
-        response, formatting = await IncomeFunction.get_daily_income()
-        return f"Rp {formatting}"
+        response = await IncomeFunction.get_daily_income(date)
+        return response
     
-    async def get_monthly_income(client, message):
+    async def get_monthly_income(month):
         '''Menu 12'''
-        input ="```Input example (1~12) => 5```\nInput date month :"
-        await message.channel.send(input)
-        data = await Command.get_input(client, message)
-        if int(data.content) > 12 or int(data.content) < 1:
-          return f"Please input correctly. {data.content} is not valid"
+        if int(month) > 12 or int(month) < 1:
+          return f"Please input correctly. {month} is not valid"
           
         date_today = date.today()
-        input_date = date_today.replace(day=1,month=int(data.content))
+        input_date = date_today.replace(day=1,month=int(month))
         input_date = datetime.strftime(input_date, "%Y-%m-%d")
         input_date = datetime.strptime(input_date, "%Y-%m-%d")
       
-        input = f"**Detail saving**\n"
-        await message.channel.send(input)
+        header = f"**Detail income**\n"
         response = await IncomeFunction.get_monthly_income(input_date)
-        return response
+        return header+response
 
     async def get_remaining_money(client, message):
         '''Menu 13'''
@@ -274,19 +237,12 @@ class Command:
         response = await IncomeFunction.get_monthly_income(data, remaining)
         return response
 
-    async def transfer(client, message):
+    async def transfer(source,amount,target):
         '''Menu 5'''
-        income_type = await IncomeTypeFunction.get_all_temp()
-        await message.channel.send(income_type)
-
-        input = "```Input example (id_source#amount#id_destination) => 1#69420#5```"
-        await message.channel.send(input)
-
-        message = await Command.get_input(client, message)
-        response =await IncomeFunction.transfer(message.content)
+        response =await IncomeFunction.transfer(source,amount,target)
         return response
 
-    async def detail_budget(client, message):
+    async def detail_budget():
       '''Menu X'''
       msg1, income = await IncomeFunction.get_group_income()
       msg2, outcome =  await OutcomeFunction.get_group_outcome()

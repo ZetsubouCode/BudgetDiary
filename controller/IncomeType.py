@@ -17,7 +17,7 @@ class IncomeType:
         return income_type
     
     @staticmethod
-    async def get_all() -> List[IncomeTypeModel]:
+    def get_all() -> List[IncomeTypeModel]:
         """
         Get all result of IncomeType data
         @return: List of IncomeType object

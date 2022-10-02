@@ -1,46 +1,31 @@
 from controller.Income import Income as IncomeController
 from datetime import date, datetime, timedelta
 from temp_db import temp_db
+from utils import Util
 
 class Income:
+    
+    async def add(income_type,amount,detail,date):
+        
+        data_date = Util.date_validation(date)
 
-    async def add(msg: str):
-        data = msg.split("#")
+        await IncomeController.add(amount, data_date, income_type, detail)
 
-        if len(data) < 2 or len(data) > 4:
-            return f"Input `{msg}` is not valid"
-        try:
-            int(data[0])
-        except Exception as e:
-            return f"Not a valid number ({str(e)})"
-        if len(data) >= 3:
-            detail = data[2]
-        else:
-            detail = None
-
-        if len(data) == 4:
-            try:
-                data_date = datetime.strptime(data[3], "%d-%m-%Y")
-                data_date = datetime.strftime(data_date, "%Y-%m-%d")
-            except ValueError as e:
-                return f"Incorrect data format, should be YYYY-MM-DD -> {str(e)}"
-        else:
-            data_date = date.today()
-
-        await IncomeController.add(data[0], data_date, data[1], detail)
-
-        amount = "{:,}".format(int(data[0])).replace(",", ".")
+        amount = "{:,}".format(int(amount)).replace(",", ".")
         return f"Success add Rp {amount} to balance"
 
-    async def get_saving():
-        income = await IncomeController.get_daily_income()
-        total = 0
-        for i in income:
-            if i.amount is None:
-                break
-            total += i.amount
-        amount = "{:,}".format(total).replace(",", ".")
-        return total, amount
+    async def get_daily_income(date):
+
+        data_date = Util.date_validation(date)
+
+        income = await IncomeController.get_daily_income(data_date)
+        if len(income) <= 0:
+            return "There's no income this month"
+        message = f"**Income {data_date}**\n"
+        for index, data in enumerate(income):
+            amount = "{:,}".format(data.amount).replace(",", ".")
+            message += f"{index+1}. Rp {amount} from {data.income_type.name}\n"
+        return message
 
     async def get_last_income():
         data_date = date.today().replace(day=1)
@@ -52,11 +37,8 @@ class Income:
             total += i.amount
         return total
 
-    async def get_this_month_income(date_input, remaining):
-        date_converted_a = date_input.replace(day=1)
-        next_month = date_input.replace(day=28) + timedelta(days=4)
-        next_month = next_month - timedelta(days=next_month.day)
-        date_converted_b = next_month
+    async def get_this_month_income(input_date, remaining):
+        date_converted_a ,date_converted_b = Util.get_first_and_last_day(input_date)
         data = await IncomeController.get_this_month_income(
             date_converted_a, date_converted_b)
         total = 0
@@ -64,15 +46,14 @@ class Income:
             if i.amount == None:
                 break
             total += i.amount
-        month_name = date.strftime(next_month, "%B")
+        month_name = date.strftime(date_converted_b, "%B")
         total = "{:,}".format(total + remaining).replace(",", ".")
         return f"Rp {total} for this month ({month_name})"
 
     async def get_monthly_income(input_date):
-        next_month = input_date.replace(day=28) + timedelta(days=4)
-        next_month = next_month - timedelta(days=next_month.day)
+        date_converted_a ,date_converted_b = Util.get_first_and_last_day(input_date)
         income = await IncomeController.get_monthly_income(
-            input_date.replace(day=1), next_month)
+            date_converted_a, date_converted_b)
         if len(income) <= 0:
             return "There's no income this month"
         message = f"**Income {input_date}**\n"
@@ -91,29 +72,18 @@ class Income:
 
         return message, income
 
-    async def transfer(msg: str):
-        data = msg.split("#")
-
-        if len(data) != 3:
-            return f"Input `{msg}` is not valid"
-        try:
-            int(data[1])
-        except Exception as e:
-            return f"Not a valid number ({str(e)})"
-
+    async def transfer(source:int,amount:int,target:int):
+        
         list_type = temp_db._income_type
         data_date = date.today()
-        next_month = data_date.replace(day=28) + timedelta(days=4)
-        next_month = next_month - timedelta(days=next_month.day)
         #reducing
-        amount = -abs(int(data[1]))
-        await IncomeController.add(amount, data_date, data[0],
+        await IncomeController.add(-abs(int(amount)), data_date, source,
                                    "Balancing transfer amount")
 
         await IncomeController.add(
-            data[1], data_date, data[2],
-            f"Transfer balance from {list_type[int(data[0])-1].name}")
+            amount, data_date, target,
+            f"Transfer balance from {list_type[int(source)-1].name}")
 
-        amount = "{:,}".format(int(data[1])).replace(",", ".")
+        amount = "{:,}".format(int(amount)).replace(",", ".")
 
-        return f"Success transfer Rp {amount} from {list_type[int(data[0])-1].name} to {list_type[int(data[2])-1].name} "
+        return f"Success transfer Rp {amount} from {list_type[int(source)-1].name} to {list_type[int(target)-1].name} "
