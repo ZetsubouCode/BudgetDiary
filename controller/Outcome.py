@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 from sqlalchemy.sql import func
 from datetime import date
 from sqlalchemy.orm import joinedload
@@ -44,7 +44,22 @@ class Outcome:
             ).filter(OutcomeModel.date_created<data_date).all()
 
         return outcome
+
     
+    @staticmethod
+    async def get_specific_latest_outcome(keyword:str,category_id:int) -> OutcomeModel:
+        """
+        Get the first result of Outcome by its category id and depend on the keyword
+        @param target_id: The id of the Outcome data
+        @return: Outcome object
+        """
+        with get_session() as session:
+            outcome = session.query(OutcomeModel).options(joinedload(OutcomeModel.category), joinedload(OutcomeModel.income_type)
+            ).filter(OutcomeModel.category_id==category_id,func.lower(OutcomeModel.detail_item.like(keyword))
+                ).order_by(OutcomeModel.date_created.desc()).first()
+
+        return outcome
+  
     @staticmethod
     async def get_daily_outcome(target_date: date) -> OutcomeModel:
         """
