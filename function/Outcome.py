@@ -2,20 +2,23 @@ from controller.Outcome import Outcome as OutcomeController
 from datetime import timedelta, date, datetime
 from utils import Util
 
+
 class Outcome:
 
-    async def add(outcome_type:int,income_type:int,amount:int,detail:str,date:str):
+    async def add(outcome_type: int, income_type: int, amount: int,
+                  detail: str, date: str):
         input_date = Util.date_validation(date)
         if outcome_type == '7':
             amount = -abs(int(amount))
             await OutcomeController.add(amount, input_date, income_type,
                                         "Balancing balance amount")
-        await OutcomeController.add(outcome_type, income_type, detail, amount, input_date)
+        await OutcomeController.add(outcome_type, income_type, detail, amount,
+                                    input_date)
 
         amount = "{:,}".format(abs(int(amount))).replace(",", ".")
         return f"Spend Rp {amount} for {detail}"
 
-    async def get_daily_outcome(date:str):
+    async def get_daily_outcome(date: str):
         input_date = Util.date_validation(date)
         outcome = await OutcomeController.get_daily_outcome(input_date)
         if outcome:
@@ -31,31 +34,33 @@ class Outcome:
         return message
 
     async def get_monthly_outcome_json(input_date):
-        temp={}
-        date_converted_a ,date_converted_b = Util.get_first_and_last_day(input_date)
+        temp = {}
+        date_converted_a, date_converted_b = Util.get_first_and_last_day(
+            input_date)
         outcome = await OutcomeController.get_monthly_outcome(
-            date_converted_a ,date_converted_b)
+            date_converted_a, date_converted_b)
         if outcome:
             date_converted = datetime.strftime(outcome[0].date_created, "%B")
-            title= f"**MONTHLY OUTCOME ON {date_converted}**\n"
+            title = f"**MONTHLY OUTCOME ON {date_converted}**\n"
         else:
-            return "There's no outcome on this month"
+            return "There's no outcome on this month", None
         date_data = ""
         for index, data in enumerate(outcome):
             if date_data != data.date_created:
-                date_converted = datetime.strftime(data.date_created,"%d-%m-%Y")
+                date_converted = datetime.strftime(data.date_created,
+                                                   "%d-%m-%Y")
                 data_message = date_converted
                 date_data = data.date_created
-                
+
             amount = "{:,}".format(data.amount).replace(",", ".")
             key = f"Transaction {index+1}"
             data = f"{data.category.emoticon}  [**{data.income_type.name}**] {data.detail_item} Rp {amount}\n"
             if str(data_message) not in temp:
-                temp.update({str(data_message):{key:data}})
-            else :
+                temp.update({str(data_message): {key: data}})
+            else:
                 temp[str(data_message)][key] = data
 
-        return title,temp
+        return title, temp
 
     async def get_group_outcome():
         outcome = await OutcomeController.get_group_outcome()
@@ -93,3 +98,8 @@ class Outcome:
         outcome = await OutcomeController.get_monthly_total(
             date_input, next_month)
         return outcome[0].amount
+
+    async def get_specific_latest_outcome(keyword: str, category_id:int):
+        keyword = f"%{keyword.lower()}%"
+        data = await OutcomeController.get_specific_latest_outcome(keyword, category_id)
+        return data
