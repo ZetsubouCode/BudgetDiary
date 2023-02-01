@@ -32,7 +32,8 @@ Red fox fly Over a stick
 - autopep8 >= 1.6.0
 - pydantic>=1.8.2
 - sqlalchemy >= 1.4.32
-- mysql
+- pymysql
+- flask
 
 # ENV
 Create __env.py in the same level as main.py
