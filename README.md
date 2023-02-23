@@ -72,6 +72,14 @@ If there's an error and the installation failed when execute pip command, add us
 ```bash
 pip install --user setuptools
 ```
+If that still doesn't work, try to install it manually using os lib in shell terminal
+- Go to shell terminal, type python and press enter
+- copy and paste this code 
+```bash
+import os
+os.system("pip install nextcord")
+```
+There's will be some warning about module version conflict, and by installing this module using os, it kinda like bypassing replit safe check. Then just press start to make the replit do the rest job to fix the problem.
 
 Run it in replit is kinda tricky. Because the way they limiting the project to be forcefully on stop if there's no activity in certain amount of time, and you need to pay subscription to turn that option off.
 OR, you can just **ping** it in some interval.
