@@ -6,12 +6,12 @@ class Category:
     main_endpoint = "category"
     
     async def add(name, emot):
-        json_data = {
+        form_data = {
         "name":name,
          "emoticon":emot
         }
         sub_endpoint = "all"
-        category = Util.send_request('POST',main_endpoint,sub_endpoint,json=json_data)
+        category = Util.send_request('POST',main_endpoint,sub_endpoint,data=form_data)
         return True
 
     def get_all_raw():
