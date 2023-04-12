@@ -10,14 +10,14 @@ class Category:
         "name":name,
          "emoticon":emot
         }
-        sub_endpoint = "all"
+        sub_endpoint = "add"
         category = Util.send_request('POST',main_endpoint,sub_endpoint,data=form_data)
         return True
 
-    def get_all_raw():
+    async def get_all_raw():
         sub_endpoint = "all"
         category = Util.send_request('GET',main_endpoint,sub_endpoint)
-        return CategoryController.get_all()    
+        return category 
 
     async def get_all():
         category = await get_all_raw()
