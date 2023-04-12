@@ -1,7 +1,8 @@
-import sys, time
+import sys, time, requests
 from enum import Enum
 from typing import Any
 from datetime import datetime, timedelta, date
+from __env import ENV
 
 class Util:
 
@@ -27,6 +28,18 @@ class Util:
         next_month = next_month - timedelta(days=next_month.day)
         date_converted_b = next_month
         return date_converted_a, date_converted_b
+    
+    def send_request(method:str, main_endpoint:str, sub_endpoint:str, headers=None, data=None, json=None):
+        url = f"{ENV.HOST}/{main_endpoint}/{sub_endpoint}"
+        
+        response = requests.request(method, url, headers=headers, data=data, json=json)
+
+        # Raise an exception if the response indicates an error
+        response.raise_for_status()
+
+        # Parse the response JSON and return it as a dictionary
+        print(str(response.json()))
+        return response.json()
 
 class DebugLevel(Enum):
     INFO = "INFO"
