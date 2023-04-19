@@ -10,7 +10,7 @@ class IncomeType:
         form_data = {
         "name":name
         }
-        income_type = Util.send_request('POST',main_endpoint,sub_endpoint,data=form_data)
+        message, income_type = Util.send_request('POST',main_endpoint,sub_endpoint,data=form_data)
 
     async def get_all():
         income_type = await get_all_raw()
@@ -21,5 +21,5 @@ class IncomeType:
 
     async def get_all_raw():
         sub_endpoint = "all"
-        income_type = Util.send_request('GET',main_endpoint,sub_endpoint)
-        return income_type.content
+        message, income_type = Util.send_request('GET',main_endpoint,sub_endpoint)
+        return income_type
