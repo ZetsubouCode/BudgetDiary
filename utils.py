@@ -33,13 +33,11 @@ class Util:
         url = f"{ENV.HOST}/{main_endpoint}/{sub_endpoint}"
         
         response = requests.request(method, url, headers=headers, data=data, json=json)
-
         # Raise an exception if the response indicates an error
         response.raise_for_status()
+        data = Response.parse_raw(json.dumps(response_json))
 
-        # Parse the response JSON and return it as a dictionary
-        print(str(response.json()))
-        return response.json()
+        return data.status, data.content
 
 class DebugLevel(Enum):
     INFO = "INFO"
