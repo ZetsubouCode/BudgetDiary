@@ -19,9 +19,9 @@ class Category:
         category = Util.send_request('GET',main_endpoint,sub_endpoint)
         return category 
 
-    async def get_all(raw_option:bool=False):
+    async def get_all(temp_option:bool=False):
         try:
-            if raw_option :
+            if temp_option :
                 category = await get_all_raw()
             else:
                 category = temp_db._category
