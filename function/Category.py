@@ -19,26 +19,18 @@ class Category:
         category = Util.send_request('GET',main_endpoint,sub_endpoint)
         return category 
 
-    async def get_all():
-        category = await get_all_raw()
-        message = "**LIST CATEGORY\n**"
-        for data in category:
-            if data.emoticon is None:
-                emot = ""
-            else :
-                emot = data.emoticon+" "
-            message += f"{data.id}. {emot}{data.name}\n"
-        return message
-
-    async def get_all_temp():
-        category = temp_db._category
-        message = "**LIST CATEGORY\n**"
-        print(category)
-        for data in category:
-            print(data)
-            if data.emoticon is None:
-                emot = ""
-            else :
-                emot = data.emoticon+" "
-            message += f"{data.id}. {emot}{data.name}\n"
-        return message
+    async def get_all(raw_option:bool=False):
+        try:
+            if raw_option :
+                category = await get_all_raw()
+            else:
+                category = temp_db._category
+            message = "**LIST CATEGORY\n**"
+            for idx,data in enumerate(category):
+                emot = (data.emoticon or "")+" "
+                message += f"{(idx+1)}. {emot}{data.name}\n"
+            return message
+        except Exception as e:
+            # Handle the exception here
+            print(f"Error: {e}")
+            return "An error occurred while retrieving category data."
