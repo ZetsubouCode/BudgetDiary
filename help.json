@@ -1,0 +1,15 @@
+{
+    "Introduction": {
+        "What is this bot?": "This bot helps you track your budget.",
+        "How to use?": "Use commands to interact with the bot."
+    },
+    "Commands": {
+        "Help": "Shows a list of all commands.",
+        "Add Income": "Adds an income entry to your budget.",
+        "Add Outcome": "Adds an outcome entry to your budget."
+    },
+    "Advanced Usage": {
+        "Custom Categories": "You can create custom categories for tracking.",
+        "Reports": "Generate detailed financial reports."
+    }
+}

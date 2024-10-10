@@ -1,4 +1,4 @@
-import sys, time
+import sys, time, json
 from enum import Enum
 from typing import Any
 from datetime import datetime, timedelta, date
@@ -27,13 +27,19 @@ class Util:
         next_month = next_month - timedelta(days=next_month.day)
         date_converted_b = next_month
         return date_converted_a, date_converted_b
+    
+    def read_json(JSON_FILE_PATH=""):
+        try:
+            with open(JSON_FILE_PATH, 'r') as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return {}
 
 class DebugLevel(Enum):
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
-
 
 class __Debug:
     def __init__(self):
