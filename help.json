@@ -4,9 +4,16 @@
         "How to use?": "Use commands to interact with the bot."
     },
     "Commands": {
-        "Help": "Shows a list of all commands.",
-        "Add Income": "Adds an income entry to your budget.",
-        "Add Outcome": "Adds an outcome entry to your budget."
+        "Help": "Merupakan menu untuk melihat list command yang tersedia",
+        "List Menu": "Adds an income entry to your budget.",
+        "Add Category": "Merupakan menu untuk menambah data kategori pengeluaran.",
+        "Add Outcome": "Merupakan menu untuk menambah data pengeluaran.",
+        "Add Income": "Merupakan menu untuk menambah data pemasukkan.",
+        "Get Daily Outcome": "Merupakan menu untuk melihat data pengeluaran harian.",
+        "Get Monthly Outcome": "Merupakan menu untuk melihat data pengeluaran bulanan.",
+        "Get Monthly Income": "Merupakan menu untuk melihat list data pemasukkan.",
+        "Get Budget": "Merupakan menu untuk melihat sisa uang yang dimiliki.",
+        "Get List Budget": "???."
     },
     "Advanced Usage": {
         "Custom Categories": "You can create custom categories for tracking.",
