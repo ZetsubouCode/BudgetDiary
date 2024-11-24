@@ -178,5 +178,183 @@
             },
             "emoticon": ":fuelpump:"
         }
+    ],
+    "Income": [
+        {
+            "id": 1,
+            "description": {
+                "INA": "BCA Debit",
+                "ENG": "BCA Debit"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 2,
+            "description": {
+                "INA": "BCA TabunganKu",
+                "ENG": "BCA TabunganKu"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 3,
+            "description": {
+                "INA": "GOPAY",
+                "ENG": "GOPAY"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 4,
+            "description": {
+                "INA": "Neo Commerce",
+                "ENG": "Neo Commerce"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 5,
+            "description": {
+                "INA": "aaa",
+                "ENG": "aaa"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 6,
+            "description": {
+                "INA": "zzz",
+                "ENG": "zzz"
+            },
+            "emoticon": "\ud83d\udc41\ufe0f"
+        },
+        {
+            "id": 7,
+            "description": {
+                "INA": "ttt",
+                "ENG": "ttt"
+            },
+            "emoticon": "\ud83d\udc3c"
+        },
+        {
+            "id": 8,
+            "description": {
+                "INA": "ahahah",
+                "ENG": "ahahah"
+            },
+            "emoticon": "\ud83e\ude81"
+        },
+        {
+            "id": 9,
+            "description": {
+                "INA": "aqqq",
+                "ENG": "aqqq"
+            },
+            "emoticon": "\ud83c\uddf6\ud83c\udde6"
+        },
+        {
+            "id": 10,
+            "description": {
+                "INA": "ffac",
+                "ENG": "ffac"
+            },
+            "emoticon": null
+        },
+        {
+            "id": 11,
+            "description": {
+                "INA": "coba1",
+                "ENG": "coba1"
+            },
+            "emoticon": "\ud83c\udf57"
+        },
+        {
+            "id": 12,
+            "description": {
+                "INA": "coba1",
+                "ENG": "coba1"
+            },
+            "emoticon": null
+        },
+        {
+            "id": 13,
+            "description": {
+                "INA": "sembarang",
+                "ENG": "sembarang"
+            },
+            "emoticon": "\ud83e\udd79"
+        },
+        {
+            "id": 14,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 15,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 16,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 17,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 18,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 19,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 20,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 21,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 22,
+            "description": {
+                "INA": "a",
+                "ENG": "a"
+            },
+            "emoticon": ""
+        }
     ]
 }
