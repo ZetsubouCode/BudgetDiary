@@ -1,7 +1,8 @@
-import os, sys, json
+import os, sys, json, asyncio
 from datetime import date
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict, Callable
 
+import nextcord
 from nextcord.ext import commands
 from nextcord.errors import HTTPException
 from nextcord import File, ButtonStyle, Embed, Color, SlashOption, Interaction, Intents,SelectOption, ui
@@ -9,6 +10,7 @@ from nextcord.ui import Button, View
 
 from command.Command import Command as CommandFunction
 from command.Category import Category as CategoryCommand
+from command.User import User as UserCommand
 
 from temp_db import temp_db
 from _env import ENV
@@ -68,7 +70,7 @@ def createHelpEmbed(data: dict, pageNum=0, limit=2, inline=False, list_page=None
     for category_name, category_items in data.items():
         category_list = []
         for key, value in category_items.items():
-            category_list.append(f"{key}: {value}")
+            category_list.append(f"{key} {value}")
         all_categories.append((category_name, category_list))
 
     # Determine how many pages we have already shown from previous categories
@@ -85,7 +87,7 @@ def createHelpEmbed(data: dict, pageNum=0, limit=2, inline=False, list_page=None
             
             if page_data:
                 embed = Embed(color=0x0080ff, title=category_name)
-                embed.add_field(name=category_name, value="\n".join(page_data), inline=inline)
+                embed.add_field(name="", value="\n".join(page_data), inline=inline)
                 return embed
         
         # Update current_page_start to the next category's page range
@@ -150,6 +152,59 @@ async def EmbedNav(ctx, data, limit=7):
 
 
 ################################################################################################
+class DynamicSelectView(ui.View):
+    def __init__(self, options: Dict[str, str], callback=None):
+        """
+        A dynamic select menu view.
+
+        Args:
+            options (dict): A dictionary of options where key is the label and value is the value.
+            callback (callable): Optional callback function to process the selected value.
+        """
+        super().__init__()
+        self.selected_value = None  # Store the selected value
+        self.event = asyncio.Event()  # Event to wait for selection
+        self.callback = callback  # Store the callback function
+
+        select_menu = ui.Select(
+            placeholder="Choose an option...",
+            options=[
+                SelectOption(label=label, value=value)
+                for label, value in options.items()
+            ]
+        )
+
+        select_menu.callback = self.select_callback
+        self.add_item(select_menu)
+
+    async def select_callback(self, interaction: Interaction):
+        self.selected_value = interaction.data['values'][0]  # Capture the selected value
+        if self.callback:  # If a custom callback is provided, use it
+            await self.callback(interaction, self.selected_value)
+        else:
+            await interaction.response.edit_message(
+                content=f"You selected income type: **{self.selected_value}**. Processing...",
+                view=None
+            )
+        self.event.set()  # Notify that a selection has been made
+
+async def send_dm(discord_id:str, message: str):
+    """
+    Sends a direct message to the specified user.
+
+    Args:
+        user (nextcord.User): The user to send the DM to.
+        message (str): The message to send.
+    """
+    try:
+        user = await client.fetch_user(discord_id)
+        await user.send(message)
+        print(f"Message sent to {user.name} ({user.id})")
+    except nextcord.Forbidden:
+        print(f"Could not send message to {user.name} ({user.id}). They might have DMs disabled.")
+    except Exception as e:
+        print(f"An error occurred while sending DM: {e}")
+################################################################################################
 
 @client.event
 async def on_ready():
@@ -182,6 +237,30 @@ async def help(interaction:Interaction):
 async def menu(interaction:Interaction):
     await interaction.response.send_message(await CommandFunction.list_menu())
 
+@client.slash_command(guild_ids=list_guild_ids, description="Register yourself with the bot")
+async def register(
+    interaction: Interaction,
+    pin: str = SlashOption(description="Your pin for your account"),
+    email: Optional[str] = SlashOption(description="Your email address", required=False, default=None)
+):
+    """
+    Slash command for user registration.
+
+    Args:
+        interaction (Interaction): The Discord interaction object.
+        email (str): The email address of the user.
+        full_name (Optional[str]): The full name of the user (optional).
+    """
+    discord_id = interaction.user.id  # Get Discord user ID
+    username = interaction.user.name  # Get Discord username
+    
+    # Call the register_user function
+    status,message = UserCommand.register_user(discord_id, username, pin, email)
+    
+    # Send feedback to the user
+    await interaction.response.send_message(message)
+    await send_dm(discord_id, "im behind you")
+
 @client.slash_command(guild_ids=list_guild_ids, description="Show all categories (income or outcome)")
 async def list_categories(interaction: Interaction, category_type: str = SlashOption(description="Choose category type", choices={"Income": "income", "Outcome": "outcome"}, required=False, default=None)):
     success, message = await CategoryCommand.get_all(category_type)
@@ -202,35 +281,26 @@ async def add_category(interaction:Interaction,
 
 
 @client.slash_command(guild_ids=list_guild_ids, description="Add new income")
-async def add_income(interaction:Interaction,
-                    amount:int = SlashOption(description='Amount'),
-                    detail:Optional[str] = SlashOption(description='Detail of income',required=False, default=None),
-                    date:Optional[str] = SlashOption(description='The date income was earn',default=None)):
-    income_type_choices = fetch_income_choices()
-    # Create a select menu with the dynamically loaded choices
-    select_menu = ui.Select(
-        placeholder="Choose an income type...",
-        options=[
-            SelectOption(label=key, value=value)
-            for key,value in income_type_choices.items()
-        ]
-    )
+async def add_income(interaction: Interaction,
+                     amount: int = SlashOption(description='Amount'),
+                     detail: Optional[str] = SlashOption(description='Detail of income', required=False, default=None),
+                     date: Optional[str] = SlashOption(description='The date income was earned', default=None)):
+    income_type_choices = fetch_income_choices() 
 
-    async def select_callback(interaction: Interaction):
-        selected_value = select_menu.values[0]
-        await interaction.response.edit_message(
-            content=f"You selected income type {selected_value}. Now processing your request...",
-            view=None
-        )
-    
-    select_menu.callback = select_callback
-    
-    # Create a view to add the select menu
-    view = ui.View()
-    view.add_item(select_menu)
+    async def process_selection(interaction: Interaction, selected_value: str):
+        # Use the selected value for further processing
+        print(selected_value)
+        response_message = await CategoryCommand.add(selected_value, amount, detail, date)
+        await interaction.followup.send(response_message)
 
-    await interaction.response.send_message("Select an income type:", view=view)
-    # await interaction.response.send_message(await CommandFunction.add_income(income_type,amount,detail,date))
+    # Create the dynamic select view
+    view = DynamicSelectView(options=income_type_choices, callback=process_selection)
+
+    # Defer the response to avoid the timeout
+    await interaction.response.defer()
+
+    # Send the message with the dynamic select menu
+    await interaction.followup.send("Select an income type:", view=view)
 
 # @client.slash_command(guild_ids=list_guild_ids, description="Return list of income from a single day")
 # async def daily_income(interaction:Interaction,date:Optional[str] = SlashOption(description='The date income was earn. Example => 30-08-2022',default=None)):
