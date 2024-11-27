@@ -32,11 +32,15 @@ class User:
         """
         return User.hash_pin(pin) == hashed_pin
      
-    def get_users(category_type=""):
+    def get_users(user_id:str=""):
         file_path = JSON_USER_FILE_PATH
         try:
             with open(file_path, "r") as file:
-                return json.load(file)
+                if user_id:
+                    return json.load(file).get(user_id,{})
+                else:
+                    return json.load(file)
+                    
         except FileNotFoundError:
             return []
         
