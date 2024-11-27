@@ -5,16 +5,19 @@ from typing import Any, List, Optional, Dict, Callable
 import nextcord
 from nextcord.ext import commands
 from nextcord.errors import HTTPException
-from nextcord import File, ButtonStyle, Embed, Color, SlashOption, Interaction, Intents,SelectOption, ui
-from nextcord.ui import Button, View
+from nextcord import File, ButtonStyle, Embed, Color, SlashOption, Interaction, Intents,SelectOption, ui, TextInputStyle
+from nextcord.ui import Button, View, Modal, TextInput, Select
 
 from command.Command import Command as CommandFunction
 from command.Category import Category as CategoryCommand
 from command.User import User as UserCommand
 
+from decorator.pin import pin_required
+
 from temp_db import temp_db
 from _env import ENV
 
+from util.event_handler import EventHandler
 from util.logger import LoggerSingleton
 
 logger = LoggerSingleton.get_instance(master_level=45)
@@ -49,6 +52,12 @@ income_typeJSON = JSON_convert(category["income"])
 def fetch_income_choices():
     print(45454544)
     return JSON_convert(temp_db._income_type)
+
+def get_emoji_unicode(emoji_name):
+    emoji = nextcord.utils.get(client.emojis, name=emoji_name)
+    if emoji:
+        return str(emoji)  # Converts the emoji to a string, which will be in the form of unicode
+    return None
 
 def createHelpEmbed(data: dict, pageNum=0, limit=2, inline=False, list_page=None):
     """
@@ -95,7 +104,7 @@ def createHelpEmbed(data: dict, pageNum=0, limit=2, inline=False, list_page=None
 
     return None  # If no data found for this page
 
-async def EmbedNav(ctx, data, limit=7):
+async def EmbedNav(ctx, data, limit=7, is_followup=False, channel=None):
     currentPage = 0
     total_pages = 0  # Will be updated when we calculate pages
     list_page = []  # List to hold how many pages each category should take
@@ -111,7 +120,8 @@ async def EmbedNav(ctx, data, limit=7):
         list_page.append(category_page_count)  # Store how many pages each category will take
         total_pages += category_page_count  # Total pages for all categories
 
-    async def next_callback(interaction):
+    # Button callbacks
+    async def next_callback(interaction: Interaction):
         nonlocal currentPage, sent_msg
         currentPage += 1
         if currentPage >= total_pages:
@@ -123,7 +133,7 @@ async def EmbedNav(ctx, data, limit=7):
             await sent_msg.edit(embed=embed, view=myview)
         await interaction.response.defer()
 
-    async def previous_callback(interaction):
+    async def previous_callback(interaction: Interaction):
         nonlocal currentPage, sent_msg
         currentPage -= 1
         if currentPage < 0:
@@ -148,8 +158,15 @@ async def EmbedNav(ctx, data, limit=7):
     # Send the first message with the embed content
     embed = createHelpEmbed(data, currentPage, limit=limit, list_page=list_page)
     if embed:
-        sent_msg = await ctx.send(embed=embed, view=myview)
-
+        if channel:
+            sent_msg = await channel.send(embed=embed, view=myview)
+        else:
+            if is_followup:
+                # Use followup if specified
+                sent_msg = await ctx.followup.send(embed=embed, view=myview)
+            else:
+                # Use regular send otherwise
+                sent_msg = await ctx.send(embed=embed, view=myview)
 
 ################################################################################################
 class DynamicSelectView(ui.View):
@@ -188,22 +205,79 @@ class DynamicSelectView(ui.View):
             )
         self.event.set()  # Notify that a selection has been made
 
-async def send_dm(discord_id:str, message: str):
-    """
-    Sends a direct message to the specified user.
+class DynamicModal(Modal):
+    def __init__(self, title: str, fields: dict, callback_function):
+        """
+        Initialize the modal with dynamic fields based on the input dictionary.
 
-    Args:
-        user (nextcord.User): The user to send the DM to.
-        message (str): The message to send.
-    """
-    try:
-        user = await client.fetch_user(discord_id)
-        await user.send(message)
-        print(f"Message sent to {user.name} ({user.id})")
-    except nextcord.Forbidden:
-        print(f"Could not send message to {user.name} ({user.id}). They might have DMs disabled.")
-    except Exception as e:
-        print(f"An error occurred while sending DM: {e}")
+        Args:
+            title (str): The title of the modal.
+            fields (dict): A dictionary where the keys are field names, and the values are dictionaries
+                           with 'placeholder', 'required', and 'style' options.
+            callback_function (callable): The function to call after submission.
+        """
+        super().__init__(title=title)
+        self.callback_function = callback_function
+        self.fields = fields
+        self.inputs = {}  # Dictionary to hold TextInput objects
+
+        # Dynamically create input fields
+        for field_name, field_options in fields.items():
+            text_input = TextInput(
+                label=field_name,
+                placeholder=field_options.get("placeholder", ""),
+                required=field_options.get("required", True),
+                style=field_options.get("style", TextInputStyle.short),
+            )
+            self.inputs[field_name] = text_input
+            self.add_item(text_input)
+
+    async def callback(self, interaction: Interaction):
+        """
+        Callback function triggered when the modal is submitted.
+        """
+        # Collect user input
+        user_input = {field_name: input_field.value for field_name, input_field in self.inputs.items()}
+        print(f"User Input: {user_input}")
+
+        # Call the provided callback function with the collected data
+        await self.callback_function(interaction, user_input)
+
+    def get_input_values(self) -> dict:
+        """
+        Get the collected user inputs as a dictionary.
+
+        Returns:
+            dict: User input values with field names as keys.
+        """
+        return {field_name: input_field.value for field_name, input_field in self.inputs.items()}
+
+        
+class DropdownView(View):
+    def __init__(self):
+        super().__init__()
+        
+        # Create the Select menu
+        self.dropdown = Select(
+            placeholder="Choose an option...",
+            options=[
+                SelectOption(label="Option 1 :car:", description="This is the first option", value="option_1"),
+                SelectOption(label="Option 2 \U0001F44D", description="This is the second option", value="option_2"),
+                SelectOption(label="Option 3", description="This is the third option", value="option_3"),
+            ],
+        )
+        
+        # Assign the callback function to the dropdown
+        self.dropdown.callback = self.dropdown_callback
+        
+        # Add the dropdown to the view
+        self.add_item(self.dropdown)
+
+    async def dropdown_callback(self, interaction: Interaction):
+        # Get the selected value
+        selected_option = self.dropdown.values[0]  # You can support multiple selections if `max_values > 1`
+        await interaction.response.send_message(f"You selected: {selected_option}", ephemeral=True)
+
 ################################################################################################
 
 @client.event
@@ -213,25 +287,71 @@ async def on_ready():
 
 @client.event
 async def on_guild_join(guild):
+    global list_guild_ids
     guild_id = guild.id
     guild_name = guild.name
-    # Store the guild ID (you could save this to a database or file instead)
-    list_guild_ids[guild_id] = guild_name
     print(f'Bot has joined a new guild: {guild_name} (ID: {guild_id})')
 
-    # Save the updated dictionary to the JSON file
-    with open("list_guild.json", "w") as f:
-        json.dump(list_guild_ids, f, indent=4)
+    # Load existing data from the JSON file
+    try:
+        with open("list_guild.json", "r") as f:
+            existing_guilds = json.load(f)  # Load existing data as a list
+    except (FileNotFoundError, json.JSONDecodeError):
+        list_guild_ids = []  # Initialize as empty if file doesn't exist or is invalid
+
+    # Append the new guild ID if not already present
+    if guild_id not in list_guild_ids:
+        list_guild_ids.append(guild_id)
+
+        # Save the updated list back to the JSON file
+        with open("list_guild.json", "w") as f:
+            json.dump({guild_id:guild_name}, f, indent=4)
     
     # Check if the system channel exists and if the bot can send messages there
     if guild.system_channel is not None and guild.system_channel.permissions_for(guild.me).send_messages:
         await guild.system_channel.send(f'Thanks for adding me to {guild_name}!')
+        await client.sync_application_commands(guild_id=guild_id)
     else:
         print(f'Cannot send message in {guild_name}\'s system channel.')
 
+@client.event
+async def on_guild_remove(guild):
+    print(f"Bot was removed from: {guild.name} (ID: {guild.id})")
+    # Optional: Remove the guild from your stored data
+    if guild.id in list_guild_ids:
+        list_guild_ids.remove(guild.id)
+        with open("list_guild.json", "w") as f:
+            json.dump(list_guild_ids, f, indent=4)
+        print(f"Updated guild list after removal.")
+
+@client.slash_command(guild_ids=list_guild_ids,name="dropdown", description="Test a dropdown menu")
+async def dropdown(interaction: Interaction):
+    view = DropdownView()
+    await interaction.response.send_message("Choose an option from the dropdown:", view=view, ephemeral=True)
+
+@client.slash_command(guild_ids=list_guild_ids,name="test_modal", description="Test a dynamic modal")
+async def test_modal(interaction: Interaction, title: str = SlashOption(description="Modal title")):
+    async def process_input(interaction: Interaction, user_input: dict):
+        """Handles the user input from the modal."""
+        await interaction.response.defer()
+        embed = Embed(title="Modal Submission", description=f"You entered: **{user_input}**", color=0x00FF00)
+        await interaction.followup.send(embed=embed, ephemeral=True)
+    
+    fields = {
+        "Field 1": {"placeholder": "Enter something for Field 1", "required": True, "style": TextInputStyle.short},
+        "Field 2": {"placeholder": "Enter something for Field 2", "required": False, "style": TextInputStyle.paragraph},
+        "Field 3": {"placeholder": "Enter something for Field 3", "required": True, "style": TextInputStyle.short},
+    }
+    
+    # Create the modal
+    modal = DynamicModal(title=title, fields=fields, callback_function=process_input)
+    await interaction.response.send_modal(modal)
+
 @client.slash_command(guild_ids=list_guild_ids, description="Show list of command available to interact with")
+@pin_required(client)
 async def help(interaction:Interaction):
-    await EmbedNav(interaction,helpGuide)
+    # await EmbedNav(interaction,helpGuide,channel=channel)
+    await EmbedNav(interaction,helpGuide,is_followup=True)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Show list of command with detail explanation")
 async def menu(interaction:Interaction):
@@ -271,6 +391,7 @@ async def list_categories(interaction: Interaction, category_type: str = SlashOp
         await interaction.response.send_message(message)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Menu for add new outcome category")
+@pin_required(client)
 async def add_category(interaction:Interaction,
                     name:str = SlashOption(description='The name of category'),
                     category_type:str = SlashOption(description='Type of the category. ', choices={"Income": "Income", "Outcome": "Outcome"},required=True),
@@ -281,6 +402,7 @@ async def add_category(interaction:Interaction,
 
 
 @client.slash_command(guild_ids=list_guild_ids, description="Add new income")
+@pin_required(client)
 async def add_income(interaction: Interaction,
                      amount: int = SlashOption(description='Amount'),
                      detail: Optional[str] = SlashOption(description='Detail of income', required=False, default=None),
