@@ -44,7 +44,7 @@ class DynamicLogger:
 
         # Setup file logging if enabled
         if self.log_to_file:
-            self.file_handler = open(self.file_path, "a")
+            self.file_handler = open(self.file_path, "a", encoding="utf-8")
 
     def _get_caller_info(self):
         """
