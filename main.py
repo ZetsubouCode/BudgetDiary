@@ -50,7 +50,6 @@ temp_db._income_type = category["income"]
 income_typeJSON = JSON_convert(category["income"])
 
 def fetch_income_choices():
-    print(45454544)
     return JSON_convert(temp_db._income_type)
 
 def get_emoji_unicode(emoji_name):
@@ -254,17 +253,30 @@ class DynamicModal(Modal):
 
         
 class DropdownView(View):
-    def __init__(self):
+    def __init__(self, options: list[dict],max_values=1):
+        """
+        :param options: List of dictionaries containing option details.
+                        Example:
+                        [
+                            {"label": "Option 1", "description": "Description 1", "value": "option_1", "emoji": "🚗"},
+                            {"label": "Option 2", "description": "Description 2", "value": "option_2", "emoji": "👍"},
+                        ]
+        """
         super().__init__()
-        
-        # Create the Select menu
+        self.selected_values = None
+        # Create the dynamic Select menu
         self.dropdown = Select(
             placeholder="Choose an option...",
             options=[
-                SelectOption(label="Option 1 :car:", description="This is the first option", value="option_1"),
-                SelectOption(label="Option 2 \U0001F44D", description="This is the second option", value="option_2"),
-                SelectOption(label="Option 3", description="This is the third option", value="option_3"),
+                SelectOption(
+                    label=option["label"],
+                    description=option.get("description", ""),
+                    value=option["value"],
+                    emoji=option.get("emoji", None)  # Optional emoji
+                ) for option in options
             ],
+            min_values=1,
+            max_values=max_values,
         )
         
         # Assign the callback function to the dropdown
@@ -275,9 +287,73 @@ class DropdownView(View):
 
     async def dropdown_callback(self, interaction: Interaction):
         # Get the selected value
-        selected_option = self.dropdown.values[0]  # You can support multiple selections if `max_values > 1`
-        await interaction.response.send_message(f"You selected: {selected_option}", ephemeral=True)
+        self.selected_values = self.dropdown.values
+        selected_text = ", ".join(self.selected_values)  # You can support multiple selections if `max_values > 1`
+        await interaction.response.send_message(f"You selected: {selected_text}", ephemeral=True)
 
+
+class InputModal(Modal):
+    def __init__(self, title, callback_function):
+        super().__init__(title=title)
+        self.callback_function = callback_function
+
+        self.name_input = TextInput(
+            label="Enter Name",
+            placeholder="Type your name here",
+            style=TextInputStyle.short,
+            required=True,
+        )
+        self.description_input = TextInput(
+            label="Enter Description",
+            placeholder="Type a description here",
+            style=TextInputStyle.paragraph,
+            required=False,
+        )
+
+        self.add_item(self.name_input)
+        self.add_item(self.description_input)
+
+    async def callback(self, interaction: Interaction):
+        inputs = {
+            "name": self.name_input.value,
+            "description": self.description_input.value,
+        }
+        await self.callback_function(interaction, inputs)
+
+class DropdownViewWithModal(View):
+    def __init__(self, modal_callback,modal_title:str,modal_fields: list[dict],options: list[dict],max_values=1):
+        super().__init__()
+        self.modal_callback = modal_callback
+        self.modal_title = modal_title
+        self.modal_fields = modal_fields
+        # Create the dropdown
+        self.dropdown = Select(
+            placeholder="Choose an option...",
+            options=[
+                SelectOption(
+                    label=option["label"],
+                    description=option.get("description", ""),
+                    value=option["value"],
+                    emoji=option.get("emoji", None)  # Optional emoji
+                ) for option in options
+            ],
+            min_values=1,
+            max_values=max_values,
+        )
+        self.dropdown.callback = self.dropdown_callback
+        self.add_item(self.dropdown)
+
+    async def dropdown_callback(self, interaction: Interaction):
+        # Get the selected value from the dropdown
+        selected_option = self.dropdown.values[0]
+
+        # Define and send the modal
+        modal = DynamicModal(
+            title=self.modal_title,
+            fields=self.modal_fields,
+            callback_function=lambda interaction, inputs: self.modal_callback(interaction, {**inputs, "selected_option": selected_option}),
+        )
+        await interaction.response.send_modal(modal)
 ################################################################################################
 
 @client.event
@@ -330,11 +406,11 @@ async def dropdown(interaction: Interaction):
     await interaction.response.send_message("Choose an option from the dropdown:", view=view, ephemeral=True)
 
 @client.slash_command(guild_ids=list_guild_ids,name="test_modal", description="Test a dynamic modal")
-async def test_modal(interaction: Interaction, title: str = SlashOption(description="Modal title")):
-    async def process_input(interaction: Interaction, user_input: dict):
+async def test_modal(interaction: Interaction):
+    async def process_input(interaction: Interaction, title:str, user_input: dict):
         """Handles the user input from the modal."""
         await interaction.response.defer()
-        embed = Embed(title="Modal Submission", description=f"You entered: **{user_input}**", color=0x00FF00)
+        embed = Embed(title=title, description=f"You entered: **{user_input}**", color=0x00FF00)
         await interaction.followup.send(embed=embed, ephemeral=True)
     
     fields = {
@@ -344,11 +420,10 @@ async def test_modal(interaction: Interaction, title: str = SlashOption(descript
     }
     
     # Create the modal
-    modal = DynamicModal(title=title, fields=fields, callback_function=process_input)
+    modal = DynamicModal(title="Modal Submission", fields=fields, callback_function=process_input)
     await interaction.response.send_modal(modal)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Show list of command available to interact with")
-@pin_required(client)
 async def help(interaction:Interaction):
     # await EmbedNav(interaction,helpGuide,channel=channel)
     await EmbedNav(interaction,helpGuide,is_followup=True)
@@ -392,13 +467,33 @@ async def list_categories(interaction: Interaction, category_type: str = SlashOp
 
 @client.slash_command(guild_ids=list_guild_ids, description="Menu for add new outcome category")
 @pin_required(client)
-async def add_category(interaction:Interaction,
-                    name:str = SlashOption(description='The name of category'),
-                    category_type:str = SlashOption(description='Type of the category. ', choices={"Income": "Income", "Outcome": "Outcome"},required=True),
-                    emoticon:str = SlashOption(description='Emoticon argument without semicolon. Example => smile', required=False,default=""),
-                    ):
-    status,message,data = await CategoryCommand.add(name,category_type,emoticon)
-    await interaction.response.send_message(message)
+async def add_category(interaction:Interaction):
+    async def handle_modal_submission(interaction:Interaction, inputs):
+        # Combine dropdown and modal inputs
+        await interaction.response.defer()
+        print(inputs)
+        status,message,data = await CategoryCommand.add(inputs.get('Name'),inputs.get('selected_option'),inputs.get('Emoticon'))
+        await interaction.followup.send(message, ephemeral=True)
+
+    # Embed describing the interaction process
+    embed = Embed(
+        title="Interactive Workflow",
+        description="Select a category from the dropdown and provide additional input.",
+        color=0x00FF00,
+    )
+    fields = [
+        {"label":"Income","description": "Income Category", "value": "income", "emoji": "\U0001F911"},
+        {"label":"Outcome","description": "Outcome Category", "value": "outcome", "emoji": "\U0001F92B"},
+    ]
+    modal_fields = {
+            "Name": {"placeholder": f"Enter category name", "required": True, "style": TextInputStyle.short},
+            "Emoticon": {"placeholder": "Enter emoticon for the category", "required": False, "style": TextInputStyle.short},
+    }
+    # Attach the view
+    view = DropdownViewWithModal(modal_callback=handle_modal_submission,modal_title="modal title",modal_fields=modal_fields,options=fields,max_values=1)
+
+    # Send the initial embed with the dropdown
+    await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 @client.slash_command(guild_ids=list_guild_ids, description="Add new income")
