@@ -1,19 +1,16 @@
 from functools import wraps
 from nextcord import Interaction, Client
-from nextcord.errors import NotFound,Forbidden
 from command.User import User
 
 from util.event_handler import EventHandler
 
 # PIN Middleware
-from nextcord.errors import Forbidden, NotFound
 from asyncio import TimeoutError
 
 def pin_required(client: Client, is_private=False):
     def decorator(command_func):
         @wraps(command_func)
         async def wrapper(interaction: Interaction, *args, **kwargs):
-            print("masuk????????????")
             await interaction.response.defer(ephemeral=is_private)
             user_id = str(interaction.user.id)
             user_data = User.get_users(user_id)
@@ -51,7 +48,7 @@ def pin_required(client: Client, is_private=False):
 
             except Exception as e:
                 print(f"Error in PIN verification: {e}")
-                await interaction.response.send_message("An error occurred. Please try again.", ephemeral=True)
+                await interaction.followup.send("An error occurred. Please try again.")
 
         return wrapper
     return decorator
