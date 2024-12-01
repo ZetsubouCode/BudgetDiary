@@ -1,0 +1,118 @@
+{
+    "income": [
+        {
+            "id": 1,
+            "description": {
+                "INA": "BCA Debit",
+                "ENG": "BCA Debit"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 2,
+            "description": {
+                "INA": "BCA TabunganKu",
+                "ENG": "BCA TabunganKu"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 3,
+            "description": {
+                "INA": "GOPAY",
+                "ENG": "GOPAY"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 4,
+            "description": {
+                "INA": "Neo Commerce",
+                "ENG": "Neo Commerce"
+            },
+            "emoticon": ""
+        },
+        {
+            "id": 5,
+            "description": {
+                "INA": "tesla",
+                "ENG": "tesla"
+            },
+            "emoticon": "\ud83d\ude97"
+        }
+    ],
+    "outcome": [
+        {
+            "id": 1,
+            "description": {
+                "INA": "Makanan",
+                "ENG": "Food"
+            },
+            "emoticon": "\u1f374"
+        },
+        {
+            "id": 2,
+            "description": {
+                "INA": "Minuman",
+                "ENG": "Minuman"
+            },
+            "emoticon": "\ud83e\udd64"
+        },
+        {
+            "id": 3,
+            "description": {
+                "INA": "Jajanan",
+                "ENG": "Snack"
+            },
+            "emoticon": "\ud83c\udf62"
+        },
+        {
+            "id": 4,
+            "description": {
+                "INA": "Tagihan Air",
+                "ENG": "Water Bill"
+            },
+            "emoticon": "\ud83d\udca7"
+        },
+        {
+            "id": 5,
+            "description": {
+                "INA": "Tagihan Listrik",
+                "ENG": "Electricity Bill"
+            },
+            "emoticon": "\u26a1"
+        },
+        {
+            "id": 6,
+            "description": {
+                "INA": "Belanja Online",
+                "ENG": "Online Shopping"
+            },
+            "emoticon": "\ud83d\uded2"
+        },
+        {
+            "id": 7,
+            "description": {
+                "INA": "TopUp Game",
+                "ENG": "TopUp Game"
+            },
+            "emoticon": "\ud83d\udc8e"
+        },
+        {
+            "id": 8,
+            "description": {
+                "INA": "Transportasi",
+                "ENG": "Transportation"
+            },
+            "emoticon": "\ud83d\ude97"
+        },
+        {
+            "id": 9,
+            "description": {
+                "INA": "Bensin",
+                "ENG": "Gasoline"
+            },
+            "emoticon": "\u26fd"
+        }
+    ]
+}
