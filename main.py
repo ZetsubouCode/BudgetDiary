@@ -1,4 +1,5 @@
 import os, sys, json, asyncio
+import emoji
 from datetime import date
 from typing import Any, List, Optional, Dict, Callable
 
@@ -43,11 +44,11 @@ def JSON_convert(array:List[Any]):
             temp_json[data["description"]["INA"]] = data["id"]
         return json.loads(json.dumps(temp_json))
 
-category =  json.load(open("data\category.json"))
-temp_db._category = category["outcome"]
-categoryJSON = JSON_convert(category["outcome"])
-temp_db._income_type = category["income"]
-income_typeJSON = JSON_convert(category["income"])
+# category =  json.load(open("data\category.json"))
+# temp_db._category = category["outcome"]
+# categoryJSON = JSON_convert(category["outcome"])
+# temp_db._income_type = category["income"]
+# income_typeJSON = JSON_convert(category["income"])
 
 def fetch_income_choices():
     return JSON_convert(temp_db._income_type)
@@ -250,8 +251,7 @@ class DynamicModal(Modal):
             dict: User input values with field names as keys.
         """
         return {field_name: input_field.value for field_name, input_field in self.inputs.items()}
-
-        
+       
 class DropdownView(View):
     def __init__(self, options: list[dict],max_values=1):
         """
@@ -291,35 +291,6 @@ class DropdownView(View):
         selected_text = ", ".join(self.selected_values)  # You can support multiple selections if `max_values > 1`
         await interaction.response.send_message(f"You selected: {selected_text}", ephemeral=True)
 
-
-class InputModal(Modal):
-    def __init__(self, title, callback_function):
-        super().__init__(title=title)
-        self.callback_function = callback_function
-
-        self.name_input = TextInput(
-            label="Enter Name",
-            placeholder="Type your name here",
-            style=TextInputStyle.short,
-            required=True,
-        )
-        self.description_input = TextInput(
-            label="Enter Description",
-            placeholder="Type a description here",
-            style=TextInputStyle.paragraph,
-            required=False,
-        )
-
-        self.add_item(self.name_input)
-        self.add_item(self.description_input)
-
-    async def callback(self, interaction: Interaction):
-        inputs = {
-            "name": self.name_input.value,
-            "description": self.description_input.value,
-        }
-        await self.callback_function(interaction, inputs)
-
 class DropdownViewWithModal(View):
     def __init__(self, modal_callback,modal_title:str,modal_fields: list[dict],options: list[dict],max_values=1):
         super().__init__()
@@ -354,6 +325,99 @@ class DropdownViewWithModal(View):
             callback_function=lambda interaction, inputs: self.modal_callback(interaction, {**inputs, "selected_option": selected_option}),
         )
         await interaction.response.send_modal(modal)
+
+class DynamicEmbedWithButtons(View):
+    def __init__(self, embed_title: str, embed_description: str, callback_function, list_button: list[dict], color=0x00FF00):
+        """
+        Initialize the embed view with dynamic buttons.
+
+        Args:
+            embed_title (str): Title of the embed.
+            embed_description (str): Description of the embed.
+            callback_function (callable): Function to call when a button is pressed.
+            list_button (list): List of button configurations (label, style, etc.).
+        """
+        super().__init__(timeout=180)  # Set timeout for the buttons
+        self.callback_function = callback_function
+        self.message = None  # Store the message for later edits
+        self.button_pressed = False  # Track if a button has been pressed
+
+        # Create the embed
+        self.embed = Embed(
+            title=embed_title,
+            description=embed_description,
+            color=color,
+        )
+
+        # Add buttons
+        for button in list_button:
+            dynamic_button = Button(
+                label=button.get("label"),
+                style=button.get("style"),
+                custom_id=button.get("custom_id")
+            )
+            dynamic_button.callback = self.create_button_callback(button.get("label"))
+            self.add_item(dynamic_button)
+
+    async def on_timeout(self):
+        """Handles timeout for the buttons."""
+        for child in self.children:
+            child.disabled = True
+        try:
+            if self.message:
+                await self.message.edit(view=self)  # Disable buttons in the message
+        except Exception as e:
+            print(f"Timeout handling error: {e}")
+
+    def create_button_callback(self, label):
+        async def callback(interaction: Interaction):
+            await self._handle_button_press(interaction, label)
+        return callback
+
+    async def _handle_button_press(self, interaction: Interaction, choice):
+        """
+        Handle button presses and call the callback function.
+
+        Args:
+            interaction (Interaction): The interaction object.
+            choice (str): The button label that was pressed.
+        """
+        # Prevent multiple presses
+        if self.button_pressed:
+            await interaction.response.send_message("This button has already been pressed.", ephemeral=True)
+            return
+
+        self.button_pressed = True  # Mark button as pressed
+
+        # Disable buttons after selection
+        for child in self.children:
+            child.disabled = True
+
+        try:
+            # Defer the interaction response if not already done
+            if not interaction.response.is_done():
+                await interaction.response.defer()
+
+            # Edit the message to disable buttons
+            if self.message:
+                await self.message.edit(view=self)
+        except Exception as e:
+            print(f"Edit message error: {e}")
+
+        # Call the provided callback function with the choice
+        try:
+            await self.callback_function(interaction, choice)
+        except Exception as e:
+            print(f"Callback function error: {e}")
+
+    def get_embed(self) -> Embed:
+        """Get the embed object."""
+        return self.embed
+
+    def set_message(self, message):
+        """Set the message object for later use."""
+        self.message = message
+
 ################################################################################################
 
 @client.event
@@ -405,23 +469,38 @@ async def dropdown(interaction: Interaction):
     view = DropdownView()
     await interaction.response.send_message("Choose an option from the dropdown:", view=view, ephemeral=True)
 
-@client.slash_command(guild_ids=list_guild_ids,name="test_modal", description="Test a dynamic modal")
-async def test_modal(interaction: Interaction):
-    async def process_input(interaction: Interaction, title:str, user_input: dict):
-        """Handles the user input from the modal."""
-        await interaction.response.defer()
-        embed = Embed(title=title, description=f"You entered: **{user_input}**", color=0x00FF00)
-        await interaction.followup.send(embed=embed, ephemeral=True)
-    
-    fields = {
-        "Field 1": {"placeholder": "Enter something for Field 1", "required": True, "style": TextInputStyle.short},
-        "Field 2": {"placeholder": "Enter something for Field 2", "required": False, "style": TextInputStyle.paragraph},
-        "Field 3": {"placeholder": "Enter something for Field 3", "required": True, "style": TextInputStyle.short},
-    }
-    
-    # Create the modal
-    modal = DynamicModal(title="Modal Submission", fields=fields, callback_function=process_input)
-    await interaction.response.send_modal(modal)
+@client.slash_command(guild_ids=list_guild_ids, description="Test Yes/No Embed")
+async def yes_no_test(interaction: Interaction):
+    async def handle_choice(interaction: Interaction, choice):
+        """Callback function to handle the Yes/No choice."""
+        if choice.lower() == "yes":
+            discord_id = interaction.user.id
+            discord_name = interaction.user.name
+            status,message = CategoryCommand.append_template_to_json(discord_id,discord_name)
+        else:
+            message = f"You selected: {choice}"
+            
+        await interaction.channel.send(message)
+        
+    buttons = [
+        {"label": "Yes", "style": ButtonStyle.success, "custom_id": "yes_button"},
+        {"label": "No", "style": ButtonStyle.danger, "custom_id": "no_button"},
+        {"label": "yanto", "style": ButtonStyle.primary, "custom_id": "test_button"}
+    ]
+    # Create the dynamic embed view
+    embed_view = DynamicEmbedWithButtons(
+        embed_title="Confirm Action",
+        embed_description="Do you want to proceed?",
+        callback_function=handle_choice,
+        list_button=buttons
+    )
+
+    # Send the embed with the buttons
+    await interaction.response.send_message(embed=embed_view.get_embed(), view=embed_view, ephemeral=True)
+    # Necesary for disabling button
+    sent_message = await interaction.original_message()  
+    embed_view.set_message(sent_message)
+
 
 @client.slash_command(guild_ids=list_guild_ids, description="Show list of command available to interact with")
 async def help(interaction:Interaction):
@@ -449,12 +528,39 @@ async def register(
     discord_id = interaction.user.id  # Get Discord user ID
     username = interaction.user.name  # Get Discord username
     
+    async def handle_choice(interaction: Interaction, choice):
+        """Callback function to handle the Yes/No choice."""
+        if choice.lower() == "yes":
+            discord_id = interaction.user.id
+            discord_name = interaction.user.name
+            status,message = CategoryCommand.append_template_to_json(discord_id,discord_name)
+        else:
+            message = f"You selected: {choice}"
+            
+        await interaction.channel.send(message)
+        
+    
     # Call the register_user function
     status,message = UserCommand.register_user(discord_id, username, pin, email)
-    
-    # Send feedback to the user
-    await interaction.response.send_message(message)
-    await send_dm(discord_id, "im behind you")
+    if status:
+        buttons = [
+        {"label": "Yes", "style": ButtonStyle.success, "custom_id": "yes_button"},
+        {"label": "No", "style": ButtonStyle.danger, "custom_id": "no_button"}
+        ]
+        # Create the dynamic embed view
+        embed_view = DynamicEmbedWithButtons(
+            embed_title="Confirm Action",
+            embed_description="Do you want to add template category?",
+            callback_function=handle_choice,
+            list_button=buttons
+        )
+        # Send the embed with the buttons
+        await interaction.response.send_message(embed=embed_view.get_embed(), view=embed_view, ephemeral=True)
+        sent_message = await interaction.original_message()  
+        embed_view.set_message(sent_message)
+    else:  
+        # Send feedback to the user
+        await interaction.response.send_message(message)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Show all categories (income or outcome)")
 async def list_categories(interaction: Interaction, category_type: str = SlashOption(description="Choose category type", choices={"Income": "income", "Outcome": "outcome"}, required=False, default=None)):
@@ -471,8 +577,10 @@ async def add_category(interaction:Interaction):
     async def handle_modal_submission(interaction:Interaction, inputs):
         # Combine dropdown and modal inputs
         await interaction.response.defer()
-        print(inputs)
-        status,message,data = await CategoryCommand.add(inputs.get('Name'),inputs.get('selected_option'),inputs.get('Emoticon'))
+        emoticon = inputs.get('Emoticon')
+        if emoticon:
+            emoticon = emoji.emojize(emoticon, language='alias')
+        status,message,data = await CategoryCommand.add(inputs.get('Name'),inputs.get('selected_option'),emoticon)
         await interaction.followup.send(message, ephemeral=True)
 
     # Embed describing the interaction process
