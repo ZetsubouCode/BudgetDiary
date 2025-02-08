@@ -1,8 +1,10 @@
 import json, os
-from temp_db import temp_db
 from util.date_utils import Util
+from util.text_handler import TextHandler
+from util.data_handler import DataHandler
 from util.logger import LoggerSingleton
 from config.config import *
+
 
 class Category:
 
@@ -38,10 +40,10 @@ class Category:
         except json.JSONDecodeError:
             return False, "Error: Template JSON file is not valid."
 
-        # Construct the new data
-        template_data = {
-            discord_user_id: template_content
-        }
+        # # Construct the new data
+        # template_data = {
+        #     discord_user_id: template_content
+        # }
 
         # Ensure the target JSON file exists
         if not os.path.exists(JSON_CATEGORY_FILE_PATH):
@@ -76,64 +78,103 @@ class Category:
         except IOError as e:
             return False, f"Error: Unable to write to the target JSON file. {e}"
 
-    async def add(name:str,trans_type:str = "income",emoticon:str=""):
+    async def add(discord_id:str,name:str,trans_type:str = "income",emoticon:str=""):
         try:
             trans_type = trans_type.lower()
-            json_file = Category.get_categories()
-            income_type = json_file.get(trans_type,[])
-            latest_data = income_type[-1]
-            new_data = {
-                "id":int(latest_data.get("id",0))+1,
-                "description":{
-                    "INA":name,
-                    "ENG":name
-                },
-                "emoticon":emoticon
-            }
-            income_type.append(new_data)
-             # Update the json_file with the modified income_type list
-            json_file[trans_type] = income_type
+            json_file = Util.read_json(JSON_CATEGORY_FILE_PATH)
+            
+            list_data = json_file.get(discord_id,{}).get(trans_type,{})
+            latest_key = list(list_data.keys())[-1]
+            
+            new_idx = str(int(latest_key)+1)
+            list_data[new_idx] = {
+                    "description":{
+                        "id":name,
+                        "en":name
+                    },
+                    "emoticon":emoticon
+                }
+             # Update the json_file with the modified list_data list
+            json_file[discord_id][trans_type] = list_data
 
             with open(JSON_CATEGORY_FILE_PATH, 'w') as file:
                 json.dump(json_file, file, indent=4)
 
-            temp_db._income_type = income_type
             message = f"Success add {name} {emoticon}"
             Category.logger.log(level=40,message=message)
             return True,message,None
         except Exception as e:
             Category.logger.log(level=1,message=e)
             return False,"Failed to add Category",e
+        
+    async def edit(discord_id:str,category_id:str,new_name:str,emoticon:str,trans_type:str = "outcome",language="en"):
+        try:
+            trans_type = trans_type.lower()
+            json_file = Util.read_json(JSON_CATEGORY_FILE_PATH)
+            
+            income_type = json_file.get(discord_id,{}).get(trans_type,[])
+            selected_data = income_type[category_id]
+            
+            selected_data["description"][language] = new_name
+            if emoticon != "":
+                selected_data["emoticon"] = emoticon
+            
+            income_type[category_id] = selected_data
+             # Update the json_file with the modified income_type list
+            json_file[discord_id][trans_type] = income_type
 
-    async def get_all(category_type: str = None):
+            with open(JSON_CATEGORY_FILE_PATH, 'w') as file:
+                json.dump(json_file, file, indent=4)
+
+            message = f"Success edit data into {new_name} {emoticon}"
+            Category.logger.log(level=40,message=message)
+            return True,message,None
+        except Exception as e:
+            Category.logger.log(level=1,message=e)
+            return False,"Failed to edit Category",e
+
+    async def get_all(discord_id:str,category_type: str = None, raw_data: bool = False):
         try:
             # Read JSON file containing categories
-            json_file = Util.read_json(JSON_CATEGORY_FILE_PATH)
-
+            json_file = Util.read_json(JSON_CATEGORY_FILE_PATH).get(discord_id,{})
+            user_json_file = Util.read_json(JSON_USER_FILE_PATH).get(discord_id,{})
+            language = user_json_file.get('language',"en")
             # If category_type is None, get both "income" and "outcome" categories
+            if raw_data:
+                filtered_data = {
+                    k: v for k, v in json_file.get(category_type, {}).items() if not v.get("is_deleted", False)
+                }
+                return True, "Success", filtered_data
+            
             if category_type is None:
                 categories_data = {}
                 for cat_type in ["income", "outcome"]:
-                    category = json_file.get(cat_type, [])
-                    categories_data[cat_type.title()] = {f"Category {i+1}": f"{data['description']['ENG']} {data.get('emoticon', '')}" 
-                                                        for i, data in enumerate(category)}
+                    category = json_file.get(cat_type, {})
+                    category = DataHandler.dict_to_list(category)
+                    categories_data[cat_type.title()] = {f"Category {i+1}": f"{data['description'][language]} {data.get('emoticon', '')}" 
+                                                        for i, data in enumerate(category) if not data.get("is_deleted", False)}
             else:
                 # Get the specified category type (income or outcome)
-                category = json_file.get(category_type, [])
-                categories_data = {category_type.title(): {f"Category {i+1}": f"{data['description']['ENG']} {data.get('emoticon', '')}" 
-                                                            for i, data in enumerate(category)}}
+                category = json_file.get(category_type, {})
+                category = DataHandler.dict_to_list(category)
+                categories_data = {category_type.title(): {f"Category {i+1}": f"{data['description'][language]} {data.get('emoticon', '')}" 
+                                                            for i, data in enumerate(category) if not data.get("is_deleted", False)}}
 
-            return True, categories_data  # Return as JSON-like structure
+            return True, "Success",categories_data  # Return as JSON-like structure
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            return False, f"Error: {str(e)}", None
 
-    def delete_category(category_type, category_id):
-        categories = Category.get_categories(category_type)
-        updated_categories = [cat for cat in categories if cat["id"] != category_id]
+    async def delete(discord_id:str,category_type:str, category_id:str):
+        json_file = Util.read_json(JSON_CATEGORY_FILE_PATH)
+        
+        categories = json_file.get(discord_id,{}).get(category_type,{})
+        print(categories)
+        if categories == {}:
+            return False,f"Category not found in database.",None
+        
+        categories[category_id]["is_deleted"] = True
+        json_file[discord_id][category_type] = categories
 
-        if len(categories) == len(updated_categories):
-            return f"Category ID {category_id} not found."
-
-        with open(f"{category_type}_categories.json", "w") as file:
-            json.dump(updated_categories, file, indent=4)
-        return f"Category ID {category_id} deleted successfully!"
+        with open(JSON_CATEGORY_FILE_PATH, "w") as file:
+            json.dump(json_file, file, indent=4)
+        return True,f"Category deleted successfully!",None
