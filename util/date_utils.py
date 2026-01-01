@@ -34,6 +34,8 @@ class Util:
                 return json.load(file)
         except FileNotFoundError:
             return {}
+        except json.JSONDecodeError:
+            return {}
 
 class DebugLevel(Enum):
     INFO = "INFO"

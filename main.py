@@ -1,4 +1,5 @@
 import os, sys, json, asyncio
+import emoji
 from datetime import date, datetime
 from typing import Any, List, Optional, Dict, Callable
 
@@ -141,12 +142,92 @@ async def EmbedNav(ctx, data, limit=7, is_followup=False, channel=None):
         if channel:
             sent_msg = await channel.send(embed=embed, view=myview)
         else:
-            if is_followup:
-                # Use followup if specified
+            if hasattr(ctx, "send"):
+                sent_msg = await ctx.send(embed=embed, view=myview)
+            elif is_followup:
                 sent_msg = await ctx.followup.send(embed=embed, view=myview)
             else:
-                # Use regular send otherwise
-                sent_msg = await ctx.send(embed=embed, view=myview)
+                sent_msg = await ctx.response.send_message(embed=embed, view=myview)
+
+def format_currency(amount):
+    try:
+        amount_value = int(round(amount))
+    except (TypeError, ValueError):
+        amount_value = 0
+    return f"Rp {amount_value:,}".replace(",", ".")
+
+def format_category_label(name: str, emoticon: str) -> str:
+    if emoticon:
+        return f"{name} {emoticon}"
+    return name
+
+def build_outcome_insight_embed(data: dict) -> Embed:
+    period_labels = {
+        "daily": "Harian",
+        "monthly": "Bulanan",
+        "yearly": "Tahunan",
+    }
+    period_label = period_labels.get(data.get("period"), "Periode")
+    embed = Embed(
+        title=f"Outcome Insight - {period_label}",
+        description=f"Periode: {data.get('date_label', '-')}",
+        color=0xE67E22,
+    )
+    embed.add_field(
+        name="Total Pengeluaran",
+        value=f"{format_currency(data.get('total_amount', 0))}\n{data.get('transaction_count', 0)} transaksi",
+        inline=False,
+    )
+
+    top_category = data.get("top_category")
+    if top_category:
+        category_label = format_category_label(
+            top_category.get("category_name", "Kategori"),
+            top_category.get("emoticon", ""),
+        )
+        percentage = f"{top_category.get('percentage', 0) * 100:.1f}%"
+        embed.add_field(
+            name="Kategori Terboros",
+            value=f"{category_label}\n{format_currency(top_category.get('amount', 0))} ({percentage})",
+            inline=False,
+        )
+    else:
+        embed.add_field(name="Kategori Terboros", value="Tidak ada data.", inline=False)
+
+    top_transaction = data.get("top_transaction")
+    if top_transaction:
+        transaction_label = format_category_label(
+            top_transaction.get("category_name", "Kategori"),
+            top_transaction.get("emoticon", ""),
+        )
+        detail = top_transaction.get("description") or "-"
+        embed.add_field(
+            name="Transaksi Termahal",
+            value=(
+                f"{format_currency(top_transaction.get('amount', 0))}\n"
+                f"{transaction_label} | {top_transaction.get('date', '-')}\n"
+                f"Detail: {detail}"
+            ),
+            inline=False,
+        )
+    else:
+        embed.add_field(name="Transaksi Termahal", value="Tidak ada data.", inline=False)
+
+    top_categories = data.get("top_categories", [])
+    if top_categories:
+        lines = []
+        for index, item in enumerate(top_categories, start=1):
+            label = format_category_label(item.get("category_name", "Kategori"), item.get("emoticon", ""))
+            percentage = f"{item.get('percentage', 0) * 100:.1f}%"
+            lines.append(f"{index}. {label} - {format_currency(item.get('amount', 0))} ({percentage})")
+        embed.add_field(
+            name=f"Top {len(top_categories)} Kategori",
+            value="\n".join(lines),
+            inline=False,
+        )
+
+    embed.set_footer(text="Data diambil dari transaksi outcome pada periode tersebut.")
+    return embed
 
 ################################################################################################
 class DynamicSelectView(ui.View):
@@ -203,11 +284,15 @@ class DynamicModal(Modal):
 
         # Dynamically create input fields
         for field_name, field_options in fields.items():
+            default_value = field_options.get("default_value")
+            if default_value is None:
+                default_value = field_options.get("value")
             text_input = TextInput(
                 label=field_name,
                 placeholder=field_options.get("placeholder", ""),
                 required=field_options.get("required", True),
                 style=field_options.get("style", TextInputStyle.short),
+                default_value=default_value,
             )
             self.inputs[field_name] = text_input
             self.add_item(text_input)
@@ -289,13 +374,19 @@ class DropdownViewWithModal(View):
         self.dropdown.callback = self.dropdown_callback
         self.add_item(self.dropdown)
 
+    def _resolve_modal_fields(self, selected_option: str):
+        if callable(self.modal_fields):
+            return self.modal_fields(selected_option)
+        return self.modal_fields
+
     async def dropdown_callback(self, interaction: Interaction):
         # Get the selected value from the dropdown
         selected_option = self.dropdown.values[0]
+        modal_fields = self._resolve_modal_fields(selected_option)
         # Define and send the modal
         modal = DynamicModal(
             title=self.modal_title,
-            fields=self.modal_fields,
+            fields=modal_fields,
             callback_function=lambda interaction, inputs: self.modal_callback(interaction, {**inputs, "selected_option": selected_option}),
         )
         await interaction.response.send_modal(modal)
@@ -402,17 +493,22 @@ async def on_guild_join(guild):
     # Load existing data from the JSON file
     try:
         with open("list_guild.json", "r") as f:
-            existing_guilds = json.load(f)  # Load existing data as a list
+            existing_guilds = json.load(f)
+            if not isinstance(existing_guilds, dict):
+                existing_guilds = {}
     except (FileNotFoundError, json.JSONDecodeError):
-        list_guild_ids = []  # Initialize as empty if file doesn't exist or is invalid
+        existing_guilds = {}
 
     # Append the new guild ID if not already present
-    if guild_id not in list_guild_ids:
+    list_guild_ids.clear()
+    list_guild_ids.extend([int(gid) for gid in existing_guilds.keys()])
+    if str(guild_id) not in existing_guilds:
+        existing_guilds[str(guild_id)] = guild_name
         list_guild_ids.append(guild_id)
 
         # Save the updated list back to the JSON file
         with open("list_guild.json", "w") as f:
-            json.dump({guild_id:guild_name}, f, indent=4)
+            json.dump(existing_guilds, f, indent=4)
     
     # Check if the system channel exists and if the bot can send messages there
     if guild.system_channel is not None and guild.system_channel.permissions_for(guild.me).send_messages:
@@ -425,15 +521,36 @@ async def on_guild_join(guild):
 async def on_guild_remove(guild):
     print(f"Bot was removed from: {guild.name} (ID: {guild.id})")
     # Optional: Remove the guild from your stored data
-    if guild.id in list_guild_ids:
-        list_guild_ids.remove(guild.id)
+    try:
+        with open("list_guild.json", "r") as f:
+            existing_guilds = json.load(f)
+            if not isinstance(existing_guilds, dict):
+                existing_guilds = {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        existing_guilds = {}
+
+    if str(guild.id) in existing_guilds:
+        del existing_guilds[str(guild.id)]
+        list_guild_ids.clear()
+        list_guild_ids.extend([int(gid) for gid in existing_guilds.keys()])
         with open("list_guild.json", "w") as f:
-            json.dump(list_guild_ids, f, indent=4)
+            json.dump(existing_guilds, f, indent=4)
         print(f"Updated guild list after removal.")
 
 @client.slash_command(guild_ids=list_guild_ids,name="dropdown", description="Test a dropdown menu")
 async def dropdown(interaction: Interaction):
-    view = DropdownView()
+    async def handle_selection(selection_interaction: Interaction, selected_values):
+        selection = ", ".join(selected_values)
+        await selection_interaction.response.send_message(
+            f"You selected: {selection}",
+            ephemeral=True,
+        )
+
+    options = [
+        {"label": "Option A", "description": "First option", "value": "A"},
+        {"label": "Option B", "description": "Second option", "value": "B"},
+    ]
+    view = DropdownView(handle_selection, options=options, max_values=1)
     await interaction.response.send_message("Choose an option from the dropdown:", view=view, ephemeral=True)
     
 @client.slash_command(guild_ids=list_guild_ids, description="send text unicode")
@@ -479,11 +596,12 @@ async def yes_no_test(interaction: Interaction):
 @client.slash_command(guild_ids=list_guild_ids, description="Show list of command available to interact with")
 async def help(interaction:Interaction):
     # await EmbedNav(interaction,helpGuide,channel=channel)
-    await EmbedNav(interaction,helpGuide,is_followup=True)
+    await EmbedNav(interaction,helpGuide)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Show list of command with detail explanation")
 async def menu(interaction:Interaction):
-    await interaction.response.send_message(await CommandFunction.list_menu())
+    embed = await CommandFunction.list_menu()
+    await interaction.response.send_message(embed=embed)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Register yourself with the bot")
 async def register(
@@ -537,6 +655,64 @@ async def register(
         # Send feedback to the user
         await interaction.response.send_message(message)
 
+@client.slash_command(guild_ids=list_guild_ids, description="Manage PIN remember settings")
+@pin_required(client, is_private=True)
+async def pin_remember(
+    interaction: Interaction,
+    mode: str = SlashOption(description="Choose mode", choices={"Enable": "enable", "Disable": "disable", "Status": "status"}, required=True),
+    duration_minutes: Optional[int] = SlashOption(description="Remember duration in minutes (default: current setting or 60)", required=False, default=None),
+):
+    discord_id = interaction.user.id
+    user_data = UserCommand.get_users(str(discord_id))
+    if not user_data:
+        await interaction.followup.send("Please register first.", ephemeral=True)
+        return
+
+    if mode == "status":
+        config = UserCommand.get_pin_remember_config(discord_id)
+        expires_at = config.get("expires_at")
+        if config.get("enabled"):
+            if expires_at and datetime.now() < expires_at:
+                remaining_minutes = int((expires_at - datetime.now()).total_seconds() // 60) + 1
+                message = (
+                    f"PIN remember is enabled for {config.get('minutes', 60)} minutes. "
+                    f"Session active for about {remaining_minutes} minutes."
+                )
+            else:
+                message = (
+                    f"PIN remember is enabled for {config.get('minutes', 60)} minutes. "
+                    "No active session. Enter PIN once to start a session."
+                )
+        else:
+            message = "PIN remember is disabled."
+
+        await interaction.followup.send(message, ephemeral=True)
+        return
+
+    if mode == "enable":
+        if duration_minutes is None:
+            config = UserCommand.get_pin_remember_config(discord_id)
+            duration_minutes = config.get("minutes", 60)
+        if duration_minutes <= 0:
+            await interaction.followup.send("Duration must be a positive number of minutes.", ephemeral=True)
+            return
+
+        UserCommand.set_pin_remember_settings(discord_id, True, duration_minutes)
+        UserCommand.start_pin_session(discord_id, duration_minutes)
+        await interaction.followup.send(
+            f"PIN remember enabled for {duration_minutes} minutes. Session active now.",
+            ephemeral=True,
+        )
+        return
+
+    if mode == "disable":
+        UserCommand.set_pin_remember_settings(discord_id, False)
+        await interaction.followup.send(
+            "PIN remember disabled. You will be asked for PIN again.",
+            ephemeral=True,
+        )
+        return
+
 @client.slash_command(guild_ids=list_guild_ids, description="Show all categories (income or outcome)")
 async def list_categories(interaction: Interaction, category_type: str = SlashOption(description="Choose category type", choices={"Income": "income", "Outcome": "outcome"}, required=False, default=None)):
     discord_id = str(interaction.user.id)
@@ -545,7 +721,7 @@ async def list_categories(interaction: Interaction, category_type: str = SlashOp
     if success:
         await EmbedNav(interaction,data)
     else:
-        await interaction.response.send_message(data)
+        await interaction.response.send_message(message)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Menu for add new category")
 @pin_required(client)
@@ -601,6 +777,12 @@ async def edit_category(interaction:Interaction,category_type: str = SlashOption
 
     discord_id = str(interaction.user.id)
     success, message, data = await CategoryCommand.get_all(discord_id,category_type,True)
+    if not success:
+        await interaction.followup.send(message, ephemeral=True)
+        return
+    if not data:
+        await interaction.followup.send("No categories available.", ephemeral=True)
+        return
     
     # Embed describing the interaction process
     embed = Embed(
@@ -611,12 +793,17 @@ async def edit_category(interaction:Interaction,category_type: str = SlashOption
     fields = [
         {"label":category_type,"description":value.get("description",{}).get("en"), "value": key, "emoji":TextHandler.convert_unicode_to_emoji(value.get("emoticon",""))} for key,value in data.items()
     ]
-    modal_fields = {
-            "Name": {"placeholder": f"Enter category name", "required": True, "style": TextInputStyle.short},
-            "Emoticon": {"placeholder": "Enter emoticon for the category", "required": False, "style": TextInputStyle.short},
-    }
+    def build_modal_fields(selected_option: str):
+        selected_data = data.get(selected_option, {})
+        default_name = selected_data.get("description", {}).get("en", "")
+        default_emoticon = selected_data.get("emoticon", "")
+        default_emoticon = emoji.demojize(default_emoticon) if default_emoticon else ""
+        return {
+            "Name": {"placeholder": "Enter category name", "required": True, "style": TextInputStyle.short, "default_value": default_name},
+            "Emoticon": {"placeholder": "Enter emoticon for the category", "required": False, "style": TextInputStyle.short, "default_value": default_emoticon},
+        }
     # Attach the view
-    view = DropdownViewWithModal(modal_callback=handle_modal_submission,modal_title="modal title",modal_fields=modal_fields,options=fields,max_values=1)
+    view = DropdownViewWithModal(modal_callback=handle_modal_submission,modal_title="modal title",modal_fields=build_modal_fields,options=fields,max_values=1)
 
     # Send the initial embed with the dropdown
     await interaction.followup.send(embed=embed, view=view, ephemeral=True)
@@ -637,6 +824,12 @@ async def delete_category(interaction:Interaction,category_type: str = SlashOpti
 
     discord_id = str(interaction.user.id)
     success, message, data = await CategoryCommand.get_all(discord_id,category_type,True)
+    if not success:
+        await interaction.followup.send(message, ephemeral=True)
+        return
+    if not data:
+        await interaction.followup.send("No categories available.", ephemeral=True)
+        return
     # Embed describing the interaction process
     embed = Embed(
         title="Interactive Workflow",
@@ -691,14 +884,14 @@ async def get_monthly_income(interaction: Interaction,date: str = SlashOption(
     )):
     
     discord_id = str(interaction.user.id)
-    date = date.replace("-", "")
+    date_input = (date or "").replace("-", "")
 
     try:
         # Always parse as DDMMYYYY
-        if date:
-            date_obj = datetime.strptime(date, "%m%Y").date()
+        if date_input:
+            date_obj = datetime.strptime(date_input, "%m%Y")
         else:
-            date_obj = datetime.strptime(datetime.now(), "%m%Y").date()
+            date_obj = datetime.now()
         formatted_date = date_obj.strftime("%m-%Y")
         # Call your function
         is_success, message, data = await IncomeCommand.get_monthly_income(discord_id, formatted_date)
@@ -706,7 +899,7 @@ async def get_monthly_income(interaction: Interaction,date: str = SlashOption(
         if is_success:
             await EmbedNav(interaction,data)
         else:
-            await interaction.response.send_message(data)
+            await interaction.response.send_message(message)
 
     except ValueError as e:
         print(e)
@@ -728,13 +921,14 @@ async def get_yearly_income(interaction: Interaction,year: str = SlashOption(
     )):
     
     discord_id = str(interaction.user.id)
+    year_input = (year or "").strip()
 
     try:
         # Always parse as DDMMYYYY
-        if date:
-            date_obj = datetime.strptime(year, "%Y").date()
+        if year_input:
+            date_obj = datetime.strptime(year_input, "%Y")
         else:
-            date_obj = datetime.strptime(datetime.now(), "%Y").date()
+            date_obj = datetime.now()
         formatted_date = date_obj.strftime("%Y")
         # Call your function
         is_success, message, data = await IncomeCommand.get_yearly_income(discord_id, formatted_date)
@@ -742,7 +936,7 @@ async def get_yearly_income(interaction: Interaction,year: str = SlashOption(
         if is_success:
             await EmbedNav(interaction,data)
         else:
-            await interaction.response.send_message(data)
+            await interaction.response.send_message(message)
 
     except ValueError as e:
         print(e)
@@ -754,6 +948,199 @@ async def get_yearly_income(interaction: Interaction,year: str = SlashOption(
         print(e)
         await interaction.response.send_message(
             "❌ Something went wrong", 
+            ephemeral=True
+        )
+
+@client.slash_command(guild_ids=list_guild_ids, description="Insight outcome: kategori terboros dan transaksi termahal")
+async def outcome_insight(
+    interaction: Interaction,
+    period: str = SlashOption(
+        description="Pilih periode laporan",
+        choices={"Harian": "daily", "Bulanan": "monthly", "Tahunan": "yearly"},
+        required=True,
+    ),
+    date: str = SlashOption(
+        description="Isi sesuai periode: DD-MM-YYYY / MM-YYYY / YYYY (kosong = sekarang)",
+        required=False,
+    ),
+):
+    discord_id = str(interaction.user.id)
+    date_input = (date or "").replace("-", "")
+
+    try:
+        if period == "daily":
+            date_obj = datetime.strptime(date_input, "%d%m%Y") if date_input else datetime.now()
+            formatted_date = date_obj.strftime("%d-%m-%Y")
+        elif period == "monthly":
+            date_obj = datetime.strptime(date_input, "%m%Y") if date_input else datetime.now()
+            formatted_date = date_obj.strftime("%m-%Y")
+        else:
+            date_obj = datetime.strptime(date_input, "%Y") if date_input else datetime.now()
+            formatted_date = date_obj.strftime("%Y")
+
+        is_success, message, data = await OutcomeCommand.get_outcome_insight(discord_id, period, formatted_date)
+        if is_success:
+            embed = build_outcome_insight_embed(data)
+            await interaction.response.send_message(embed=embed)
+        else:
+            await interaction.response.send_message(message)
+
+    except ValueError:
+        format_hint = {
+            "daily": "DD-MM-YYYY",
+            "monthly": "MM-YYYY",
+            "yearly": "YYYY",
+        }.get(period, "DD-MM-YYYY")
+        await interaction.response.send_message(
+            f"ƒ?O Error: Date must be in **{format_hint}** format.",
+            ephemeral=True,
+        )
+    except Exception as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Something went wrong",
+            ephemeral=True,
+        )
+
+@client.slash_command(guild_ids=list_guild_ids, description="Get outcome report for a specific date")
+async def get_daily_outcome(interaction: Interaction,date: str = SlashOption(
+        description="Enter a date (DD-MM-YYYY or DDMMYYYY)", 
+        required=True
+    )):
+    
+    discord_id = str(interaction.user.id)
+    
+    date = date.replace("-", "")
+
+    try:
+        # Always parse as DDMMYYYY
+        date_obj = datetime.strptime(date, "%d%m%Y").date()
+        formatted_date = date_obj.strftime("%d-%m-%Y")
+        # Call your function
+        status, message, data = await OutcomeCommand.get_daily_outcome(discord_id, formatted_date)
+        
+        # Send response
+        await interaction.response.send_message(message)
+
+    except ValueError as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Error: Date must be in **DD-MM-YYYY** or **DDMMYYYY** format.", 
+            ephemeral=True
+        )
+    except Exception as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Something went wrong", 
+            ephemeral=True
+        )
+
+@client.slash_command(guild_ids=list_guild_ids, description="Get monthly outcome report for a specific date")
+async def get_monthly_outcome(interaction: Interaction,date: str = SlashOption(
+        description="Enter a date (MM-YYYY or MMYYYY), will use current date if not filled", 
+        required=False
+    )):
+    
+    discord_id = str(interaction.user.id)
+    date_input = (date or "").replace("-", "")
+
+    try:
+        # Always parse as DDMMYYYY
+        if date_input:
+            date_obj = datetime.strptime(date_input, "%m%Y")
+        else:
+            date_obj = datetime.now()
+        formatted_date = date_obj.strftime("%m-%Y")
+        # Call your function
+        is_success, message, data = await OutcomeCommand.get_monthly_outcome(discord_id, formatted_date)
+        
+        if is_success:
+            await EmbedNav(interaction,data)
+        else:
+            await interaction.response.send_message(message)
+
+    except ValueError as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Error: Date must be in **MM-YYYY** or **MMYYYY** format.", 
+            ephemeral=True
+        )
+    except Exception as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Something went wrong", 
+            ephemeral=True
+        )
+
+@client.slash_command(guild_ids=list_guild_ids, description="Get yearly outcome report for a specific year")
+async def get_yearly_outcome(interaction: Interaction,year: str = SlashOption(
+        description="Enter a year YYYY), will use current date if not filled", 
+        required=False
+    )):
+    
+    discord_id = str(interaction.user.id)
+    year_input = (year or "").strip()
+
+    try:
+        # Always parse as DDMMYYYY
+        if year_input:
+            date_obj = datetime.strptime(year_input, "%Y")
+        else:
+            date_obj = datetime.now()
+        formatted_date = date_obj.strftime("%Y")
+        # Call your function
+        is_success, message, data = await OutcomeCommand.get_yearly_outcome(discord_id, formatted_date)
+        
+        if is_success:
+            await EmbedNav(interaction,data)
+        else:
+            await interaction.response.send_message(message)
+
+    except ValueError as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Error: Date must be in **YYYY** or **YYYY** format.", 
+            ephemeral=True
+        )
+    except Exception as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Something went wrong", 
+            ephemeral=True
+        )
+
+@client.slash_command(guild_ids=list_guild_ids, description="Monthly summary of income and outcome grouped by category")
+async def monthly_summary(interaction: Interaction,date: str = SlashOption(
+        description="Enter a date (MM-YYYY or MMYYYY), will use current date if not filled", 
+        required=False
+    )):
+    
+    discord_id = str(interaction.user.id)
+    date_input = (date or "").replace("-", "")
+
+    try:
+        if date_input:
+            date_obj = datetime.strptime(date_input, "%m%Y")
+        else:
+            date_obj = datetime.now()
+        formatted_date = date_obj.strftime("%m-%Y")
+        is_success, message, data = await IncomeCommand.get_monthly_summary(discord_id, formatted_date)
+        
+        if is_success:
+            await EmbedNav(interaction,data)
+        else:
+            await interaction.response.send_message(message)
+
+    except ValueError as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Error: Date must be in **MM-YYYY** or **MMYYYY** format.", 
+            ephemeral=True
+        )
+    except Exception as e:
+        print(e)
+        await interaction.response.send_message(
+            "ƒ?O Something went wrong", 
             ephemeral=True
         )
 
@@ -782,72 +1169,127 @@ async def edit_income(interaction: Interaction,date: str = SlashOption(
             "❌ Error: Date must be in **DD-MM-YYYY** or **DDMMYYYY** format.", 
             ephemeral=True
         )
+        return
     except Exception as e:
         print(e)
         await interaction.response.send_message(
             "❌ Something went wrong", 
             ephemeral=True
         )
-    if status :
-        await EmbedNav(interaction,data)
-        title = next(iter(data))
-        list_items = list(data[title].items())
-        
-        message = "Please input the transaction number to choose"
-        await interaction.followup.send(message)
-            
-        try:
-            user_response = await client.wait_for("message", check=check, timeout=60)  # Wait for 60s
-            transaction_number = user_response.content.strip()  # Remove extra spaces
-
-            # Ensure the input is a valid integer
-            if not transaction_number.isdigit():
-                await interaction.followup.send("Invalid input! Please enter a valid transaction number. You will need to restart the command.")
-                return
-
-            transaction_number = int(transaction_number)
-
-            # Ensure the number is within a valid range
-            if transaction_number < 1 or transaction_number > len(list_items):
-                await interaction.followup.send("Invalid number! Please select a valid transaction number from the list. You will need to restart the command.")
-                return
-
-            # Retrieve the selected transaction safely
-            index, description = list_items[transaction_number - 1]
-            await interaction.followup.send(f"You selected transaction number: {transaction_number} with index => {index}")
-
-        except asyncio.TimeoutError:
-            await interaction.followup.send("You didn't respond in time. You will need to restart the command.")
-            
-        title = f"Current: {current_category} (Choose new category)"
-
-    else:
+        return
+    if not status:
         await interaction.response.send_message(message)
+        return
 
-@client.slash_command(guild_ids=list_guild_ids, description="Menu for transfering income from A to B")
-# @pin_required(client)
-async def transfer_income(interaction:Interaction):
+    await EmbedNav(interaction,data)
+    title = next(iter(data))
+    list_items = list(data[title].items())
+    
+    message = "Please input the transaction number to choose"
+    await interaction.followup.send(message)
+        
+    try:
+        user_response = await client.wait_for("message", check=check, timeout=60)  # Wait for 60s
+        transaction_number = user_response.content.strip()  # Remove extra spaces
+
+        # Ensure the input is a valid integer
+        if not transaction_number.isdigit():
+            await interaction.followup.send("Invalid input! Please enter a valid transaction number. You will need to restart the command.")
+            return
+
+        transaction_number = int(transaction_number)
+
+        # Ensure the number is within a valid range
+        if transaction_number < 1 or transaction_number > len(list_items):
+            await interaction.followup.send("Invalid number! Please select a valid transaction number from the list. You will need to restart the command.")
+            return
+
+        # Retrieve the selected transaction safely
+        index, description = list_items[transaction_number - 1]
+        await interaction.followup.send(f"You selected transaction number: {transaction_number} with index => {index}")
+
+    except asyncio.TimeoutError:
+        await interaction.followup.send("You didn't respond in time. You will need to restart the command.")
+
+async def transfer_income_flow(interaction:Interaction):
     user_transfer_selections = {}
     discord_id = str(interaction.user.id)
     success, message, data = await CategoryCommand.get_all(discord_id, "income", True)
 
-    if not success:
+    if not success or not data:
         await interaction.response.send_message("No income categories available.", ephemeral=True)
         return
 
+    if len(data) < 2:
+        await interaction.response.send_message("You need at least 2 income categories to transfer.", ephemeral=True)
+        return
+
+    user_language = "en"
+    try:
+        user_language = UserCommand.get_user_language(discord_id)
+    except Exception:
+        user_language = "en"
+
+    def resolve_category_name(category_id: str) -> str:
+        category_data = data.get(category_id, {})
+        return category_data.get("description", {}).get(user_language, category_id)
+
     # Convert data to dropdown format
     fields = [
-        {"label": "Income", "description": value.get("description", {}).get("en"), 
+        {"label": resolve_category_name(key), "description": resolve_category_name(key),
          "value": key, "emoji": TextHandler.convert_unicode_to_emoji(value.get("emoticon", ""))}
         for key, value in data.items()
     ]
 
+    async def handle_modal_submission(interaction:Interaction, inputs):
+        await interaction.response.defer()
+        amount_input = (inputs.get("Amount") or "").strip()
+        date_input = (inputs.get("Date") or "").strip()
+
+        try:
+            amount = int(amount_input)
+        except ValueError:
+            await interaction.followup.send("Error: Amount must be a valid number.", ephemeral=True)
+            return
+
+        if amount <= 0:
+            await interaction.followup.send("Error: Amount must be greater than 0.", ephemeral=True)
+            return
+
+        date_input = date_input.replace("-", "")
+
+        try:
+            date_obj = datetime.strptime(date_input, "%d%m%Y").date()
+            formatted_date = date_obj.strftime("%Y-%m-%d")
+        except ValueError:
+            await interaction.followup.send("Error: Date must be in DD-MM-YYYY format.", ephemeral=True)
+            return
+
+        source_category = user_transfer_selections.get("source_category")
+        destination_category = user_transfer_selections.get("destination_category")
+
+        if not source_category or not destination_category:
+            await interaction.followup.send("Something went wrong, please try again.", ephemeral=True)
+            return
+
+        source_name = resolve_category_name(source_category)
+        destination_name = resolve_category_name(destination_category)
+        status, message, data = await IncomeCommand.transfer_balance(
+            discord_id,
+            source_category,
+            destination_category,
+            amount,
+            formatted_date,
+            source_name,
+            destination_name,
+        )
+
+        await interaction.followup.send(message, ephemeral=True)
+
     async def handle_first_selection(interaction: Interaction, selected_option):
-        selected_source = selected_option[0]  # Source category
+        selected_source = selected_option[0]
         await interaction.response.defer()
 
-        balance_is_enough, message, data = await IncomeCommand.check_balance()
-        # Ask user to select the second category
         embed = Embed(
             title="Select Destination Category",
             description="Now, choose the category where you want to transfer the income.",
@@ -856,59 +1298,34 @@ async def transfer_income(interaction:Interaction):
 
         view = DropdownView(
             handle_second_selection,
-            options=[f for f in fields if f["value"] != selected_source],  # Exclude the selected source
+            options=[f for f in fields if f["value"] != selected_source],
             max_values=1
         )
 
-        # Update the interaction message to show the second dropdown
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-
-        # Store the first selection in the interaction object
         user_transfer_selections["source_category"] = selected_source
 
     async def handle_second_selection(interaction: Interaction, selected_option):
-        selected_destination = selected_option[0]  # Destination category
+        selected_destination = selected_option[0]
         user_transfer_selections["destination_category"] = selected_destination
-        print(user_transfer_selections)
         source_category = user_transfer_selections.get("source_category")
 
         if not source_category:
             await interaction.response.send_message("Something went wrong, please try again.", ephemeral=True)
             return
 
-        await confirm_transfer(interaction)
-        
-    async def confirm_transfer(interaction: Interaction):
-        source = user_transfer_selections["source_category"]
-        destination = user_transfer_selections["destination_category"]
-
-        embed_view = DynamicEmbedWithButtons(
-            embed_title="Confirm Transfer",
-            embed_description=f"Are you sure you want to transfer income from **{source}** to **{destination}**?",
-            callback_function=handle_transfer_choice,
-            list_button=[
-                {"label": "Yes", "style": ButtonStyle.success, "custom_id": "yes"},
-                {"label": "No", "style": ButtonStyle.danger, "custom_id": "no"},
-            ],
+        default_date = datetime.now().strftime("%d-%m-%Y")
+        modal_fields = {
+            "Amount": {"placeholder": "Enter amount (number only)", "required": True, "style": TextInputStyle.short},
+            "Date": {"placeholder": "Enter transfer date (DD-MM-YYYY)", "required": True, "style": TextInputStyle.short, "default_value": default_date},
+        }
+        modal = DynamicModal(
+            title="Transfer balance",
+            fields=modal_fields,
+            callback_function=handle_modal_submission,
         )
+        await interaction.response.send_modal(modal)
 
-        await interaction.response.send_message(embed=embed_view.get_embed(), view=embed_view, ephemeral=True)
-
-        # Get the message that was just sent and store it for later edits
-        sent_message = await interaction.original_message()
-        embed_view.set_message(sent_message)
-
-    async def handle_transfer_choice(interaction: Interaction, choice):
-        await interaction.response.defer()
-        if choice.lower() == "yes":
-            # Process the transfer
-            # await IncomeCommand.transfer(interaction)
-            await interaction.followup.send("Transfer ok.", ephemeral=True)
-        else:
-            # Cancel transfer
-            await interaction.followup.send("Transfer cancelled.", ephemeral=True)
-
-    # First dropdown - Select source category
     embed = Embed(
         title="Select Source Category",
         description="Choose the income category you want to transfer from.",
@@ -916,8 +1333,16 @@ async def transfer_income(interaction:Interaction):
     )
 
     view = DropdownView(handle_first_selection, options=fields, max_values=1)
-
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+@client.slash_command(guild_ids=list_guild_ids, description="Menu for transfering income from A to B")
+# @pin_required(client)
+async def transfer_income(interaction:Interaction):
+    await transfer_income_flow(interaction)
+
+@client.slash_command(guild_ids=list_guild_ids, description="Transfer balance between income categories")
+async def transfer(interaction:Interaction):
+    await transfer_income_flow(interaction)
 
 @client.slash_command(guild_ids=list_guild_ids, description="Add new income")
 @pin_required(client)
@@ -956,14 +1381,21 @@ async def add_income(interaction: Interaction):
     )
     discord_id = str(interaction.user.id)
     success, message, income_categories = await CategoryCommand.get_all(discord_id,"income",True)
+    if not success:
+        await interaction.followup.send(message, ephemeral=True)
+        return
+    if not income_categories:
+        await interaction.followup.send("No income categories available.", ephemeral=True)
+        return
     
     fields = [
         {"label":value.get("description",{}).get("en"),"description":value.get("description",{}).get("en"), "value": key, "emoji":TextHandler.convert_unicode_to_emoji(value.get("emoticon",""))} for key,value in income_categories.items()
     ]
+    default_date = datetime.now().strftime("%d-%m-%Y")
     modal_fields = {
             "Amount": {"placeholder": "Enter amount (number only)", "required": True, "style": TextInputStyle.short},
             "Detail": {"placeholder": "Enter detail of income", "required": False, "style": TextInputStyle.short},
-            "Date": {"placeholder": "Enter date income was earned (DD-MM-YYYY)", "required": True, "style": TextInputStyle.short},
+            "Date": {"placeholder": "Enter date income was earned (DD-MM-YYYY)", "required": True, "style": TextInputStyle.short, "default_value": default_date},
     }
     # Attach the view
     view = DropdownViewWithModal(modal_callback=handle_modal_submission,modal_title="modal title",modal_fields=modal_fields,options=fields,max_values=1)
@@ -986,16 +1418,18 @@ async def delete_income(interaction: Interaction,date: str = SlashOption(
 
     except ValueError as e:
         print(e)
-        await interaction.response.send_message(
+        await interaction.send(
             "❌ Error: Date must be in **DD-MM-YYYY** or **DDMMYYYY** format.", 
             ephemeral=True
         )
+        return
     except Exception as e:
         print(e)
-        await interaction.response.send_message(
+        await interaction.send(
             "❌ Something went wrong", 
             ephemeral=True
         )
+        return
 
     async def handle_submission(interaction:Interaction, selected_option):
         discord_id = str(interaction.user.id)
@@ -1025,43 +1459,15 @@ async def delete_income(interaction: Interaction,date: str = SlashOption(
     # Send the initial embed with the dropdown
     await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-@client.slash_command(guild_ids=list_guild_ids, description="Add new income")
+@client.slash_command(guild_ids=list_guild_ids, description="Add new outcome")
 @pin_required(client)
 async def add_outcome(interaction: Interaction):
+    discord_id = str(interaction.user.id)
     user_selections = {}
-    async def handle_first_selection(interaction: Interaction, selected_option):
-        selected_source = selected_option[0]  # Source category
-        await interaction.response.defer()
-
-        balance_is_enough, message, data = await IncomeCommand.check_balance()
-        # Ask user to select the second category
-        embed = Embed(
-            title="Select Destination Category",
-            description="Now, choose the category where you want to transfer the income.",
-            color=0x00FF00,
-        )
-
-        view = DropdownView(
-            handle_second_selection,
-            options=[f for f in fields if f["value"] != selected_source],  # Exclude the selected source
-            max_values=1
-        )
-
-        # Update the interaction message to show the second dropdown
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-
-        # Store the first selection in the interaction object
-        user_selections["source_category"] = selected_source
-
-    async def handle_second_selection(interaction: Interaction, selected_option):
-        selected_destination = selected_option[0]  # Destination category
-        user_selections["destination_category"] = selected_destination
-        print(user_selections)
-        source_category = user_selections.get("source_category")
-
-        if not source_category:
-            await interaction.response.send_message("Something went wrong, please try again.", ephemeral=True)
-            return
+    try:
+        user_language = UserCommand.get_user_language(discord_id)
+    except Exception:
+        user_language = "en"
 
     async def handle_modal_submission(interaction:Interaction, inputs):
         # Combine dropdown and modal inputs
@@ -1086,28 +1492,112 @@ async def add_outcome(interaction: Interaction):
             await interaction.followup.send("Error: Date must be in DD-MM-YYYY format.", ephemeral=True)
             return
         
-        status,message,data = await OutcomeCommand.add(discord_id,inputs.get('selected_option'),amount,detail,formatted_date)
+        income_category_id = user_selections.get("income_category_id")
+        if not income_category_id:
+            await interaction.followup.send("Something went wrong, please try again.", ephemeral=True)
+            return
+
+        status, message, data = await OutcomeCommand.add(
+            discord_id,
+            inputs.get('selected_option'),
+            amount,
+            detail,
+            formatted_date,
+            income_category_id,
+        )
         await interaction.followup.send(message, ephemeral=True)
 
-    # Embed describing the interaction process
-    embed = Embed(
-        title="Choose income type",
-        description="Select an income type and provide additional input later.",
-        color=0x00FF00,
-    )
-    discord_id = str(interaction.user.id)
-    success, message, income_categories = await CategoryCommand.get_all(discord_id,"income",True)
-    
-    fields = [
-        {"label":value.get("description",{}).get("en"),"description":value.get("description",{}).get("en"), "value": key, "emoji":TextHandler.convert_unicode_to_emoji(value.get("emoticon",""))} for key,value in income_categories.items()
+    success, message, income_categories = await CategoryCommand.get_all(discord_id, "income", True)
+    if not success:
+        await interaction.followup.send(message, ephemeral=True)
+        return
+    if not income_categories:
+        await interaction.followup.send("No income categories available.", ephemeral=True)
+        return
+
+    balance_map = await IncomeCommand.get_income_balance_map(discord_id)
+    income_label_map = {}
+    income_fields = []
+    for key, value in income_categories.items():
+        balance = balance_map.get(str(key), 0)
+        if balance <= 0:
+            continue
+        label = (
+            value.get("description", {}).get(user_language)
+            or value.get("description", {}).get("en")
+            or str(key)
+        )
+        income_label_map[str(key)] = label
+        income_fields.append({
+            "label": label,
+            "description": f"Available: {format_currency(balance)}",
+            "value": key,
+            "emoji": TextHandler.convert_unicode_to_emoji(value.get("emoticon", "")),
+        })
+
+    if not income_fields:
+        await interaction.followup.send("No income categories with available balance.", ephemeral=True)
+        return
+
+    success, message, outcome_categories = await CategoryCommand.get_all(discord_id, "outcome", True)
+    if not success:
+        await interaction.followup.send(message, ephemeral=True)
+        return
+    if not outcome_categories:
+        await interaction.followup.send("No outcome categories available.", ephemeral=True)
+        return
+
+    outcome_fields = [
+        {
+            "label": (
+                value.get("description", {}).get(user_language)
+                or value.get("description", {}).get("en")
+                or str(key)
+            ),
+            "description": (
+                value.get("description", {}).get(user_language)
+                or value.get("description", {}).get("en")
+                or str(key)
+            ),
+            "value": key,
+            "emoji": TextHandler.convert_unicode_to_emoji(value.get("emoticon", "")),
+        }
+        for key, value in outcome_categories.items()
     ]
+
+    default_date = datetime.now().strftime("%d-%m-%Y")
     modal_fields = {
             "Amount": {"placeholder": "Enter amount (number only)", "required": True, "style": TextInputStyle.short},
-            "Detail": {"placeholder": "Enter detail of income", "required": False, "style": TextInputStyle.short},
-            "Date": {"placeholder": "Enter date income was earned (DD-MM-YYYY)", "required": True, "style": TextInputStyle.short},
+            "Detail": {"placeholder": "Enter detail of outcome", "required": False, "style": TextInputStyle.short},
+            "Date": {"placeholder": "Enter date outcome happened (DD-MM-YYYY)", "required": True, "style": TextInputStyle.short, "default_value": default_date},
     }
-    # Attach the view
-    view = DropdownViewWithModal(modal_callback=handle_modal_submission,modal_title="modal title",modal_fields=modal_fields,options=fields,max_values=1)
+
+    async def handle_income_selection(interaction: Interaction, selected_option):
+        selected_income = selected_option[0]
+        user_selections["income_category_id"] = selected_income
+        income_label = income_label_map.get(str(selected_income), str(selected_income))
+        await interaction.response.defer()
+
+        embed = Embed(
+            title="Choose outcome type",
+            description=f"Spending from **{income_label}**. Select an outcome type and provide additional input later.",
+            color=0x00FF00,
+        )
+        view = DropdownViewWithModal(
+            modal_callback=handle_modal_submission,
+            modal_title="Add outcome",
+            modal_fields=modal_fields,
+            options=outcome_fields,
+            max_values=1,
+        )
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
+    embed = Embed(
+        title="Choose income source",
+        description="Select the income category to use for this outcome.",
+        color=0x00FF00,
+    )
+    view = DropdownView(handle_income_selection, options=income_fields, max_values=1)
 
     # Send the initial embed with the dropdown
     await interaction.followup.send(embed=embed, view=view, ephemeral=True)

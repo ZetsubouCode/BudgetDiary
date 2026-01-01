@@ -1,22 +1,36 @@
 {
-    "Introduction": {
-        "**What is this bot?**": "\nThis bot helps you track your budget.\n",
-        "**How to use?**": "\nUse commands to interact with the bot.\n"
+    "Mulai Cepat": {
+        "intro": "**Apa itu BudgetDiary?**\nBot untuk mencatat pemasukan, pengeluaran, dan melihat laporan ringkas.",
+        "start": "**Langkah awal**\n1) Jalankan `/register` untuk membuat PIN.\n2) Tambahkan kategori dengan `/add_category`.\n3) Catat transaksi lewat `/add_income` atau `/add_outcome`.",
+        "pin": "**Catatan PIN**\nPerintah dengan label [PIN] akan meminta PIN saat dijalankan.",
+        "pin_remember": "**/pin_remember [PIN]**\nIngat PIN sementara agar tidak diminta terus. Gunakan mode enable/disable/status.",
+        "format": "**Format tanggal**\nHarian: `DD-MM-YYYY`.\nBulanan: `MM-YYYY`.\nTahunan: `YYYY`."
     },
-    "Commands": {
-        "**Help**": "\nMerupakan menu untuk melihat list command yang tersedia\n",
-        "**List Menu**": "\nAdds an income entry to your budget.\n",
-        "**Add Category**": "\nMerupakan menu untuk menambah data kategori pengeluaran.\n",
-        "**Add Outcome**": "\nMerupakan menu untuk menambah data pengeluaran.\n",
-        "**Add Income**": "\nMerupakan menu untuk menambah data pemasukkan.\n",
-        "**Get Daily Outcome**": "\nMerupakan menu untuk melihat data pengeluaran harian.\n",
-        "**Get Monthly Outcome**": "\nMerupakan menu untuk melihat data pengeluaran bulanan.\n",
-        "**Get Monthly Income**": "\nMerupakan menu untuk melihat list data pemasukkan.\n",
-        "**Get Budget**": "\nMerupakan menu untuk melihat sisa uang yang dimiliki.\n",
-        "**Get List Budget**": "\n???.\n"
+    "Bantuan": {
+        "help": "**/help**\nRingkasan perintah dan tips cepat.",
+        "menu": "**/menu**\nPenjelasan singkat tiap menu."
     },
-    "Advanced Usage": {
-        "**Custom Categories**": "\nYou can create custom categories for tracking.\n",
-        "**Reports**": "\nGenerate detailed financial reports.\n"
+    "Kategori": {
+        "list": "**/list_categories**\nLihat kategori income atau outcome yang sudah dibuat.",
+        "add": "**/add_category [PIN]**\nTambah kategori baru beserta emoticon.",
+        "edit": "**/edit_category [PIN]**\nUbah nama atau emoticon kategori.",
+        "delete": "**/delete_category [PIN]**\nHapus kategori yang tidak dipakai."
+    },
+    "Transaksi": {
+        "add_income": "**/add_income [PIN]**\nCatat pemasukan dengan tanggal dan detail.",
+        "add_outcome": "**/add_outcome [PIN]**\nCatat pengeluaran dengan tanggal dan detail.",
+        "delete_income": "**/delete_income [PIN]**\nHapus transaksi pemasukan berdasarkan tanggal.",
+        "transfer_income": "**/transfer_income**\nPindahkan saldo antar kategori income.",
+        "transfer": "**/transfer**\nPindahkan saldo antar kategori income."
+    },
+    "Laporan": {
+        "daily": "**/get_daily_income**\nLaporan pemasukan harian berdasarkan tanggal.",
+        "monthly": "**/get_monthly_income**\nLaporan pemasukan bulanan berdasarkan bulan.",
+        "yearly": "**/get_yearly_income**\nLaporan pemasukan tahunan berdasarkan tahun.",
+        "daily_outcome": "**/get_daily_outcome**\nLaporan pengeluaran harian berdasarkan tanggal.",
+        "monthly_outcome": "**/get_monthly_outcome**\nLaporan pengeluaran bulanan berdasarkan bulan.",
+        "yearly_outcome": "**/get_yearly_outcome**\nLaporan pengeluaran tahunan berdasarkan tahun.",
+        "monthly_summary": "**/monthly_summary**\nRingkasan bulanan pemasukan dan pengeluaran per kategori.",
+        "outcome_insight": "**/outcome_insight**\nInsight pengeluaran: kategori terboros dan transaksi termahal."
     }
 }

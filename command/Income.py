@@ -158,8 +158,16 @@ class Income:
 
         return summary_data
 
-    async def check_balance(discord_id:str,income_type:str):
-        ...
+    async def check_balance(discord_id: str = "", income_type: str = ""):
+        if not discord_id:
+            return True, "Balance check skipped.", None
+
+        file_path = os.path.join(JSON_TRANSACTION_FILE_PATH, f"{discord_id}.json")
+        json_file = Util.read_json(file_path)
+        if not json_file:
+            return False, "No transactions found.", None
+
+        return True, "Balance check passed.", None
         
     async def add(discord_id:str,income_type:str,amount:int,detail:str,date:str):
         year,month,day = date.split("-")
@@ -207,7 +215,7 @@ class Income:
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(json_file, file, indent=4)
 
-        message = f"Success add Rp {amount} to balance"
+        message = f"Success add income: Rp {amount}"
         Income.logger.log(level=40,message=message)
         return True,message,None
     
@@ -257,7 +265,7 @@ class Income:
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(json_file, file, indent=4)
 
-        message = f"Success add Rp {amount} to balance"
+        message = f"Success add income: Rp {amount}"
         Income.logger.log(level=40,message=message)
         return True,message,None
 
@@ -327,11 +335,11 @@ class Income:
         json_file = Util.read_json(file_path)
         # If file is empty, initialize with template
         if not json_file:
-            return False,"There's no income at that day",None
+            return False,"There's no income for that day",None
         
         income_data = json_file["income"]["by_date"].get(year,{}).get(month,{}).get(day,[])
         if len(income_data) == 0:
-            return False,"There's no income this month",None
+            return False,"There's no income for that day",None
         
         json_file_category = Util.read_json(JSON_CATEGORY_FILE_PATH)
         json_file_user = Util.read_json(JSON_USER_FILE_PATH)
@@ -385,7 +393,7 @@ class Income:
             income_type_name = income_type["description"][language]
             emoticon = income_type["emoticon"]
             amount = "{:,}".format(transaction_data["amount"]).replace(",", ".")
-            message += f"{index}. Rp {amount} from {income_type} {emoticon}\n"
+            message += f"{index}. Rp {amount} from {income_type_name} {emoticon}\n"
             
             list_transaction_dict[title][f"{count}. Income Transaction {transaction_data['date']}"] = f"**Rp {amount}** from **{income_type_name}** {emoticon}"
             
@@ -421,12 +429,197 @@ class Income:
             income_type_name = income_type["description"][language]
             emoticon = income_type["emoticon"]
             amount = "{:,}".format(transaction_data["amount"]).replace(",", ".")
-            message += f"{index}. Rp {amount} from {income_type} {emoticon}\n"
+            message += f"{index}. Rp {amount} from {income_type_name} {emoticon}\n"
             
             list_transaction_dict[title][f"{count}. Income Transaction {transaction_data['date']}"] = f"**Rp {amount}** from **{income_type_name}** {emoticon}"
             
         
         return True,message,list_transaction_dict
+
+    def _format_amount(amount: float) -> str:
+        return "{:,}".format(int(amount)).replace(",", ".")
+
+    def _get_income_balance_map(json_file: dict) -> dict:
+        balances = {}
+        for transaction in json_file.get("income", {}).get("by_id", {}).values():
+            if transaction.get("is_deleted", True):
+                continue
+            category_id = str(transaction.get("category_id"))
+            balances[category_id] = balances.get(category_id, 0) + transaction.get("amount", 0)
+
+        for transaction in json_file.get("outcome", {}).get("by_id", {}).values():
+            if transaction.get("is_deleted", True):
+                continue
+            income_category_id = transaction.get("income_category_id")
+            if not income_category_id:
+                continue
+            income_category_id = str(income_category_id)
+            balances[income_category_id] = balances.get(income_category_id, 0) - transaction.get("amount", 0)
+
+        return balances
+
+    def _get_income_category_balance(json_file: dict, category_id: str) -> float:
+        balances = Income._get_income_balance_map(json_file)
+        return balances.get(str(category_id), 0)
+
+    async def get_income_balance_map(discord_id: str) -> dict:
+        if not discord_id:
+            return {}
+        file_path = os.path.join(JSON_TRANSACTION_FILE_PATH, f"{discord_id}.json")
+        json_file = Util.read_json(file_path)
+        if not json_file:
+            return {}
+        return Income._get_income_balance_map(json_file)
+
+    async def get_monthly_summary(discord_id:str,date:str):
+        month,year = date.split("-")
+
+        file_path = os.path.join(JSON_TRANSACTION_FILE_PATH, f"{discord_id}.json")
+        json_file = Util.read_json(file_path)
+        if not json_file:
+            return False,"You have no transaction",None
+
+        income_data = json_file.get("income", {}).get("by_date", {})
+        outcome_data = json_file.get("outcome", {}).get("by_date", {})
+
+        income_ids = Income.get_transactions_list(income_data,year,month)
+        outcome_ids = Income.get_transactions_list(outcome_data,year,month)
+
+        if len(income_ids) == 0 and len(outcome_ids) == 0:
+            return False,"There's no transaction this month",None
+
+        json_file_category = Util.read_json(JSON_CATEGORY_FILE_PATH)
+        json_file_user = Util.read_json(JSON_USER_FILE_PATH)
+        language = json_file_user.get(discord_id, {}).get("language", "en")
+
+        income_totals = {}
+        for index in income_ids:
+            transaction_data = json_file["income"]["by_id"].get(index)
+            if not transaction_data or transaction_data.get("is_deleted", True):
+                continue
+            category_id = str(transaction_data["category_id"])
+            income_totals[category_id] = income_totals.get(category_id, 0) + transaction_data["amount"]
+
+        outcome_totals = {}
+        outcome_by_income = {}
+        for index in outcome_ids:
+            transaction_data = json_file["outcome"]["by_id"].get(index)
+            if not transaction_data or transaction_data.get("is_deleted", True):
+                continue
+            category_id = str(transaction_data["category_id"])
+            outcome_totals[category_id] = outcome_totals.get(category_id, 0) + transaction_data["amount"]
+
+            income_category_id = transaction_data.get("income_category_id")
+            if income_category_id:
+                income_category_id = str(income_category_id)
+                outcome_by_income[income_category_id] = outcome_by_income.get(income_category_id, 0) + transaction_data["amount"]
+
+        income_title = f"Monthly income {date}"
+        outcome_title = f"Monthly outcome {date}"
+        remaining_title = f"Remaining by income type {date}"
+        list_transaction_dict = {
+            income_title: {},
+            outcome_title: {},
+            remaining_title: {},
+        }
+
+        if income_totals:
+            for count, (category_id, total) in enumerate(
+                sorted(income_totals.items(), key=lambda item: item[1], reverse=True), start=1
+            ):
+                category_data = json_file_category.get(discord_id, {}).get("income", {}).get(category_id, {})
+                category_name = category_data.get("description", {}).get(language, category_id)
+                emoticon = category_data.get("emoticon", "")
+                amount = Income._format_amount(total)
+                list_transaction_dict[income_title][str(count)] = f"Rp {amount} from {category_name} {emoticon}".strip()
+        else:
+            list_transaction_dict[income_title]["0"] = "No income this month."
+
+        if outcome_totals:
+            for count, (category_id, total) in enumerate(
+                sorted(outcome_totals.items(), key=lambda item: item[1], reverse=True), start=1
+            ):
+                category_data = json_file_category.get(discord_id, {}).get("outcome", {}).get(category_id, {})
+                category_name = category_data.get("description", {}).get(language, category_id)
+                emoticon = category_data.get("emoticon", "")
+                amount = Income._format_amount(total)
+                list_transaction_dict[outcome_title][str(count)] = f"Rp {amount} for {category_name} {emoticon}".strip()
+        else:
+            list_transaction_dict[outcome_title]["0"] = "No outcome this month."
+
+        remaining_count = 0
+        for category_id, total in income_totals.items():
+            remaining = total - outcome_by_income.get(category_id, 0)
+            if remaining <= 0:
+                continue
+            remaining_count += 1
+            category_data = json_file_category.get(discord_id, {}).get("income", {}).get(category_id, {})
+            category_name = category_data.get("description", {}).get(language, category_id)
+            emoticon = category_data.get("emoticon", "")
+            amount = Income._format_amount(remaining)
+            list_transaction_dict[remaining_title][str(remaining_count)] = f"Rp {amount} in {category_name} {emoticon}".strip()
+
+        if remaining_count == 0:
+            list_transaction_dict[remaining_title]["0"] = "No remaining balance for this month."
+
+        return True,"Success",list_transaction_dict
+
+    async def transfer_balance(discord_id:str,source_category:str,destination_category:str,amount:int,date:str,source_name:str="",destination_name:str=""):
+        if source_category == destination_category:
+            return False,"Source and destination categories must be different.",None
+
+        amount = abs(int(amount))
+        if amount <= 0:
+            return False,"Amount must be greater than 0.",None
+
+        file_path = os.path.join(JSON_TRANSACTION_FILE_PATH, f"{discord_id}.json")
+        json_file = Util.read_json(file_path)
+        if not json_file:
+            json_template = Util.read_json(JSON_TRANSACTION_TEMPLATE_FILE_PATH)
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(json_template, file, indent=4)
+            json_file = Util.read_json(file_path)
+
+        source_balance = Income._get_income_category_balance(json_file, source_category)
+        if source_balance < amount:
+            available_amount = Income._format_amount(source_balance)
+            return False,f"Insufficient balance. Available: Rp {available_amount}",None
+
+        date_now = datetime.now().isoformat()
+        detail_source = f"Transfer to {destination_name or destination_category}"
+        detail_destination = f"Transfer from {source_name or source_category}"
+
+        next_id = max(map(int, json_file["income"]["by_id"].keys()), default=0) + 1
+
+        def append_transaction(category_id: str, value: int, detail: str):
+            nonlocal next_id, json_file
+            year,month,day = date.split("-")
+            index = str(next_id)
+            next_id += 1
+            transaction = {
+                "category_id": category_id,
+                "description": detail,
+                "amount": value,
+                "date": date,
+                "date_created": date_now,
+                "is_deleted": False,
+                "deleted_at": None
+            }
+            json_file["income"]["by_id"][index] = transaction
+            json_file["income"]["by_date"].setdefault(year, {}).setdefault(month, {}).setdefault(day, [])
+            json_file["income"]["by_date"][year][month][day].append(index)
+            json_file["income"]["by_category"].setdefault(category_id, [])
+            json_file["income"]["by_category"][category_id].append(index)
+            json_file = Income.update_summary(json_file,transaction,"add","income")
+
+        append_transaction(source_category, -amount, detail_source)
+        append_transaction(destination_category, amount, detail_destination)
+
+        with open(file_path, "w", encoding="utf-8") as file:
+            json.dump(json_file, file, indent=4)
+
+        amount_format = Income._format_amount(amount)
+        return True,f"Success transfer Rp {amount_format} from {source_name or source_category} to {destination_name or destination_category}",None
 
     async def get_group_income():
         income = ""

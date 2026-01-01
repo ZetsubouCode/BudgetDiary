@@ -1,4 +1,5 @@
 import itertools
+from nextcord import Embed, Color
 # from .Income import Income as IncomeFunction
 # from .Outcome import Outcome as OutcomeFunction
 from .Category import Category as CategoryFunction
@@ -48,40 +49,62 @@ class Command:
 
   async def list_menu():
     '''Menu 2'''
-    data = '''
-        **List Menu**
-        \n>>> 1. Help
-        \nMerupakan menu untuk melihat list command yang tersedia
-        \n2. List Menu
-        \nMerupakan menu untuk melihat penjelasan singkat akan menu yang tersedia
-        \n3. Add Category
-        \nMerupakan menu untuk menambah data kategori pengeluaran
-        \n4. Add Outcome
-        \nMerupakan menu untuk menambah data pengeluaran
-        \n5. Add Income
-        \nMerupakan menu untuk menambah data pemasukkan
-        \n6. Get Daily Outcome
-        \nMerupakan menu untuk melihat data pengeluaran harian
-        \n7. Get Monthly Outcome
-        \nMerupakan menu untuk melihat data pengeluaran bulanan
-        \n8. Get Daily Income
-        \nMerupakan menu untuk melihat uang yang dimiliki
-        \n9. Get Monthly Income
-        \nMerupakan menu untuk melihat list data pemasukkan
-        \n10. Get Budget
-        \nMerupakan menu untuk melihat sisa uang yang dimiliki
-        \n11. Get List Budget
-        \nRed fox fly Over a stick
-        \n12. Lorem ipsum
-        \nRed fox fly Over a stick
-        \n13. Lorem ipsum
-        \nRed fox fly Over a stick
-        \n14. Lorem ipsum
-        \nRed fox fly Over a stick
-        \n15. Lorem ipsum
-        \nRed fox fly Over a stick
-        '''
-    return data
+    embed = Embed(
+      title="Menu Utama",
+      description="Ringkasan fitur BudgetDiary. Gunakan `/help` untuk detail. Perintah bertanda [PIN] memerlukan PIN.",
+      color=Color.blue(),
+    )
+    embed.add_field(
+      name="Akun dan Bantuan",
+      value=(
+        "`/register` Buat akun dan PIN\n"
+        "`/pin_remember` [PIN] Atur ingat PIN sementara\n"
+        "`/help` Ringkasan perintah\n"
+        "`/menu` Penjelasan singkat tiap menu"
+      ),
+      inline=False,
+    )
+    embed.add_field(
+      name="Kategori",
+      value=(
+        "`/list_categories` Lihat kategori income atau outcome\n"
+        "`/add_category` [PIN] Tambah kategori baru\n"
+        "`/edit_category` [PIN] Ubah nama atau emoticon kategori\n"
+        "`/delete_category` [PIN] Hapus kategori yang tidak dipakai"
+      ),
+      inline=False,
+    )
+    embed.add_field(
+      name="Transaksi",
+      value=(
+        "`/add_income` [PIN] Catat pemasukan\n"
+        "`/add_outcome` [PIN] Catat pengeluaran\n"
+        "`/delete_income` [PIN] Hapus transaksi pemasukan\n"
+        "`/transfer_income` Pindahkan saldo antar kategori income\n"
+        "`/transfer` Pindahkan saldo antar kategori income"
+      ),
+      inline=False,
+    )
+    embed.add_field(
+      name="Laporan",
+      value=(
+        "`/get_daily_income` Laporan pemasukan harian\n"
+        "`/get_monthly_income` Laporan pemasukan bulanan\n"
+        "`/get_yearly_income` Laporan pemasukan tahunan\n"
+        "`/get_daily_outcome` Laporan pengeluaran harian\n"
+        "`/get_monthly_outcome` Laporan pengeluaran bulanan\n"
+        "`/get_yearly_outcome` Laporan pengeluaran tahunan\n"
+        "`/monthly_summary` Ringkasan pemasukan dan pengeluaran bulanan\n"
+        "`/outcome_insight` Insight pengeluaran (kategori terboros & transaksi termahal)"
+      ),
+      inline=False,
+    )
+    embed.add_field(
+      name="Format Tanggal",
+      value="Harian: `DD-MM-YYYY` | Bulanan: `MM-YYYY` | Tahunan: `YYYY`",
+      inline=False,
+    )
+    return embed
 
   # def get_income_type():
   #   return IncomeTypeFunction.get_all_raw()

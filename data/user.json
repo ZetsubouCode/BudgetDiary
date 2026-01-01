@@ -1,13 +1,15 @@
 {
-    "1024140513307283508": {
-        "discord_username": "garderian",
-        "email": null,
-        "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"
-    },
     "547077823584534538": {
         "discord_username": "daizetsubou",
-        "email": null,
-        "pin_hash": "fbfb386efea67e816f2dda0a8c94a98eb203757aebb3f55f183755a192d44467",
-        "language":"en"
+        "email": "kignatius80@gmail.com",
+        "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+        "balance": 0,
+        "date_created": "2026-01-01T20:01:33",
+        "date_updated": "2026-01-01T23:30:38",
+        "language": "id",
+        "pin_remember_opt_in": true,
+        "pin_remember_minutes": 120,
+        "pin_session_created_at": "2026-01-01T23:30:38",
+        "pin_session_expires_at": "2026-01-02T01:30:38"
     }
 }

@@ -166,6 +166,27 @@
                 },
                 "emoticon": "\ud83d\udc08",
                 "is_deleted": true
+            },
+            "8": {
+                "description": {
+                    "id": "test",
+                    "en": "test"
+                },
+                "emoticon": "\ud83d\ude04"
+            },
+            "9": {
+                "description": {
+                    "id": "corn",
+                    "en": "corn"
+                },
+                "emoticon": "\ud83c\udf3d"
+            },
+            "10": {
+                "description": {
+                    "id": "nopin",
+                    "en": "nopin"
+                },
+                "emoticon": "\ud83c\udf46"
             }
         },
         "outcome": {

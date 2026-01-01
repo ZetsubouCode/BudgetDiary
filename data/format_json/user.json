@@ -6,6 +6,10 @@
         "balance": 0,
         "date_created": "2024-11-24T12:34:56",
         "date_updated": "2024-11-24T12:34:56",
-        "language":"id"
+        "language":"id",
+        "pin_remember_opt_in": false,
+        "pin_remember_minutes": 60,
+        "pin_session_created_at": "",
+        "pin_session_expires_at": ""
     }
 }
