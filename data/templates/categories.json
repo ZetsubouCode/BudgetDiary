@@ -1,0 +1,13 @@
+{
+  "income": [
+    {"name": "Salary", "category_type": "income", "emoji": "💼"},
+    {"name": "Interest", "category_type": "income", "emoji": "🏦"},
+    {"name": "Gifts", "category_type": "income", "emoji": "🎁"}
+  ],
+  "outcome": [
+    {"name": "Food", "category_type": "outcome", "emoji": "🍜"},
+    {"name": "Bills", "category_type": "outcome", "emoji": "💡"},
+    {"name": "Transport", "category_type": "outcome", "emoji": "🚌"},
+    {"name": "Fun", "category_type": "outcome", "emoji": "🎮"}
+  ]
+}

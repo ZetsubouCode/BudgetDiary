@@ -1,112 +1,66 @@
 # BudgetDiary
 
-This is a discord bot that can manage your monthly expense. Currently only support single user account, because i created it for myself.
+A lightweight Discord bot for tracking incomes and expenses without a full database server. All data is stored in JSON so you can host the bot anywhere (Replit, containers, or a tiny VM) and still keep your ledger safe.
 
-# Feature
+## Features
 
-1. Help
-   Merupakan menu untuk melihat list command yang tersedia
-2. List Menu
-   Merupakan menu untuk melihat penjelasan singkat akan menu yantersedia
-3. Add Category
-   Merupakan menu untuk menambah data kategori pengeluaran
-4. Add Outcome
-   Merupakan menu untuk menambah data pengeluaran
-5. Add Income
-   Merupakan menu untuk menambah data pemasukkan
-6. Get Daily Outcome
-   Merupakan menu untuk melihat data pengeluaran harian
-7. Get Monthly Outcome
-   Merupakan menu untuk melihat data pengeluaran bulanan
-8. Get Daily Income
-   Merupakan menu untuk melihat uang yang dimiliki
-9. Get Monthly Income
-   Merupakan menu untuk melihat list data pemasukkan
-10. Get Budget
-    Merupakan menu untuk melihat sisa uang yang dimiliki
-11. Get List Budget
-    Red fox fly Over a stick
+- `/register` — create a profile secured by your PIN.
+- `/profile` — view your language, email, and running balance.
+- `/categories` — list income or outcome categories scoped to your Discord account.
+- `/add_category` — create new categories that fit the way you spend.
+- `/transaction` — record incomes or outcomes against categories.
+- `/recent` — review the latest transactions.
+- `/help` — quick command reference.
 
-# Requirement
+## Project layout
 
-- Nextcord >= 2.2.0
-- pylint >= 2.6.0
-- autopep8 >= 1.6.0
-- pydantic>=1.8.2
-- sqlalchemy >= 1.4.32
-- mysql
-
-# ENV
-
-Create __env.py in the same level as main.py
-
-```python
-class ENV:
-    DB_HOST = "<Your database host>"
-    DB_NAME = "<Your database name>"
-    DB_PASS = "<Your database password>"
-    DB_USER = "<Your database user>"
-    GUILD_ID = "<Your server id>"
-    TOKEN = "<Your discord bot token>"
+```
+budget_diary/
+├── bot.py                  # Bot bootstrap + extension loader
+├── config.py               # Environment-driven paths and defaults
+├── models.py               # Dataclasses for users, categories, transactions
+├── cogs/                   # Slash commands grouped by responsibility
+├── services/               # Business logic and JSON persistence helpers
+└── storage/json_store.py   # Tiny JSON wrapper with defaults
 ```
 
-Keep in mind that GUILD_ID is just like your server unique id. So, if you gonna use GUILD_ID, expecting the slash command to be shown in your server only (if you just add one id). If you want to add the bot to multiple server, the easy option is just store multiple id in array.
+Data is kept under `data/`:
 
-# Database
+- `users.json` — registered Discord users.
+- `categories.json` — per-user income/outcome categories.
+- `transactions.json` — ledger entries keyed by user.
+- `templates/categories.json` — default categories automatically applied to new users.
 
-~~I'm using MySQL, and I'm hosting it in [remotemysql](https://remotemysql.com). It's not a great choice, but hey, it's free.~~
-DO NOT USE IT! The server is not reliable. Well, I should realized it sooner huh. So, currently the "database" is using local JSON file
+## Setup
 
-# How to run
+1. Install dependencies (Python 3.10+ recommended):
 
-Tested on windows 10.
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Just run the main.py file in terminal.
+2. Provide a Discord bot token via environment variable:
 
-```bash
-python main.py
-```
+   ```bash
+   export DISCORD_BOT_TOKEN="your token here"
+   ```
 
-# How to run in Replit
+   Optional overrides:
 
-If you want to host it in replit, make sure to switch this repository branch into **replit**.
+   - `DEFAULT_LANGUAGE` — default language saved for new users (defaults to `en`).
+   - `DATA_DIR` — custom directory for JSON storage (defaults to the bundled `data/`).
 
-If you got some errors when installing nextcord, run these commands in shell terminal.
+3. Start the bot:
 
-```bash
-nix-env -iA nixpkgs.python39Full
-nix-env -iA nixpkgs.python39Packages.pip
-pip install setuptools
-```
+   ```bash
+   python -m budget_diary.bot
+   ```
 
-If there's an error and the installation failed when execute pip command, add user option :
+Invite the bot to your server and use `/help` to see the available commands.
 
-```bash
-pip install --user setuptools
-```
+## Design notes
 
-If that still doesn't work, try to install it manually using os lib in shell terminal
-
-- Go to shell terminal, type python and press enter
-- copy and paste this code
-
-```bash
-import os
-os.system("pip install nextcord")
-```
-
-There's will be some warning about module version conflict, and by installing this module using os, it kinda like bypassing replit safe check. Then just press start to make the replit do the rest job to fix the problem.
-
-Run it in replit is kinda tricky. Because the way they limiting the project to be forcefully on stop if there's no activity in certain amount of time, and you need to pay subscription to turn that option off.
-OR, you can just **ping** it in some interval.
-
-In my case, i set up ping action in [UpTimeRobot](https://uptimerobot.com/) and also create a cron job too using [cronjob](https://cron-job.org/en/). That 2 jobs are gonna hit flask route.
-
-# Suggestion on further development
-
-If you want this app to be able to used by multiple users, you just need to do something like this :
-
-1. Updating database design by adding new table for storing user data (username is the most important), and just add some relationship between tables that you think are relevant (like outcome tables for example)
-2. Create a function that check the user who call a command, so the program can precisely get the corrent data by filtering using username of the user
-
-Remember that this is just my take of scaling the bot. If you have another option, then go for it~!
+- JSON storage is handled by `JsonStore`, which guarantees files and parent folders exist before any reads/writes.
+- Services (`user_service.py`, `category_service.py`, `transaction_service.py`) keep business logic DRY and testable, separating it from Discord-specific code.
+- Cogs only orchestrate user interaction; they call services to read/write JSON data.
+- Default categories live in `data/templates/categories.json`, making it easy to ship opinionated starting points while still allowing per-user customization.
