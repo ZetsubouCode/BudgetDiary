@@ -1,118 +1,118 @@
 {
-    "income": [
-        {
-            "id": 1,
+    "income": {
+        "1": {
             "description": {
-                "INA": "BCA Debit",
-                "ENG": "BCA Debit"
+                "id": "BCA Debit",
+                "en": "BCA Debit"
             },
-            "emoticon": ""
+            "emoticon": "",
+            "is_deleted": false
         },
-        {
-            "id": 2,
+        "2": {
             "description": {
-                "INA": "BCA TabunganKu",
-                "ENG": "BCA TabunganKu"
+                "id": "BCA TabunganKu",
+                "en": "BCA TabunganKu"
             },
-            "emoticon": ""
+            "emoticon": "",
+            "is_deleted": false
         },
-        {
-            "id": 3,
+        "3": {
             "description": {
-                "INA": "GOPAY",
-                "ENG": "GOPAY"
+                "id": "GOPAY",
+                "en": "GOPAY"
             },
-            "emoticon": ""
+            "emoticon": "",
+            "is_deleted": false
         },
-        {
-            "id": 4,
+        "4": {
             "description": {
-                "INA": "Neo Commerce",
-                "ENG": "Neo Commerce"
+                "id": "Neo Commerce",
+                "en": "Neo Commerce"
             },
-            "emoticon": ""
+            "emoticon": "",
+            "is_deleted": false
         },
-        {
-            "id": 5,
+        "5": {
             "description": {
-                "INA": "tesla",
-                "ENG": "tesla"
+                "id": "tesla",
+                "en": "tesla"
             },
-            "emoticon": "\ud83d\ude97"
+            "emoticon": "🚗",
+            "is_deleted": false
         }
-    ],
-    "outcome": [
-        {
-            "id": 1,
+    },
+    "outcome": {
+        "1": {
             "description": {
-                "INA": "Makanan",
-                "ENG": "Food"
+                "id": "Makanan",
+                "en": "Food"
             },
-            "emoticon": "\u1f374"
+            "emoticon": "🍴",
+            "is_deleted": false
         },
-        {
-            "id": 2,
+        "2": {
             "description": {
-                "INA": "Minuman",
-                "ENG": "Minuman"
+                "id": "Minuman",
+                "en": "Beverage"
             },
-            "emoticon": "\ud83e\udd64"
+            "emoticon": "🥤",
+            "is_deleted": false
         },
-        {
-            "id": 3,
+        "3": {
             "description": {
-                "INA": "Jajanan",
-                "ENG": "Snack"
+                "id": "Jajanan",
+                "en": "Snack"
             },
-            "emoticon": "\ud83c\udf62"
+            "emoticon": "🍢",
+            "is_deleted": false
         },
-        {
-            "id": 4,
+        "4": {
             "description": {
-                "INA": "Tagihan Air",
-                "ENG": "Water Bill"
+                "id": "Tagihan Air",
+                "en": "Water Bill"
             },
-            "emoticon": "\ud83d\udca7"
+            "emoticon": "💧",
+            "is_deleted": false
         },
-        {
-            "id": 5,
+        "5": {
             "description": {
-                "INA": "Tagihan Listrik",
-                "ENG": "Electricity Bill"
+                "id": "Tagihan Listrik",
+                "en": "Electricity Bill"
             },
-            "emoticon": "\u26a1"
+            "emoticon": "⚡",
+            "is_deleted": false
         },
-        {
-            "id": 6,
+        "6": {
             "description": {
-                "INA": "Belanja Online",
-                "ENG": "Online Shopping"
+                "id": "Belanja Online",
+                "en": "Online Shopping"
             },
-            "emoticon": "\ud83d\uded2"
+            "emoticon": "🛒",
+            "is_deleted": false
         },
-        {
-            "id": 7,
+        "7": {
             "description": {
-                "INA": "TopUp Game",
-                "ENG": "TopUp Game"
+                "id": "TopUp Game",
+                "en": "TopUp Game"
             },
-            "emoticon": "\ud83d\udc8e"
+            "emoticon": "💎",
+            "is_deleted": false
         },
-        {
-            "id": 8,
+        "8": {
             "description": {
-                "INA": "Transportasi",
-                "ENG": "Transportation"
+                "id": "Transportasi",
+                "en": "Transportation"
             },
-            "emoticon": "\ud83d\ude97"
+            "emoticon": "🚗",
+            "is_deleted": false
         },
-        {
-            "id": 9,
+        "9": {
             "description": {
-                "INA": "Bensin",
-                "ENG": "Gasoline"
+                "id": "Bensin",
+                "en": "Gasoline"
             },
-            "emoticon": "\u26fd"
+            "emoticon": "⛽",
+            "is_deleted": false
         }
-    ]
+    }
 }

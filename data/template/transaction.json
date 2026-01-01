@@ -1,0 +1,30 @@
+{
+  "income": {
+    "by_id": {
+      
+    },
+    "by_date": {
+     
+    },
+    "by_category": {
+    }
+  },
+  "outcome": {
+    "by_id": {
+     
+    },
+    "by_date": {
+      
+    },
+    "by_category": {
+    }
+  },
+  "saving": {
+    "by_id": {
+      
+    },
+    "by_date": {
+      
+    }
+  }
+}

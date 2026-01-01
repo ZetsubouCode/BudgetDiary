@@ -1,69 +1,172 @@
 {
-
-      "incomes": {
-        "2024":{
-          
-        },
-        "2024-11-25":{
-          "2024-11-25":{
-            "2024-11-25":[
-              {
-                  "income_id": 1,
-                  "income_category_id": 1,
-                  "description": "Monthly Salary",
-                  "amount": 3000.00,
-                  "date_income": "2024-11-01",
-                  "date_created": "2024-11-01T08:00:00"
-              }
-          ]
-          }
-        }
-      },
-      "outcomes": {
-        "2024":{
-          "11":{
-            "25":[
-              {
-                  "outcome_id": 1,
-                  "outcome_category_id": 1,
-                  "description": "Bought groceries",
-                  "amount": 50.00,
-                  "date_spend_plan": null,
-                  "actual_buy_date": "2024-11-02",
-                  "status": "BOUGHT",
-                  "date_created": "2024-11-01T09:00:00"
-              }
-          ]
-          }
-        }
-      },
-      "savings": {
-        "2024":{
-          "11":{
-            "25":[
-              {
-                "saving_id": 1,
-                "description": "Emergency Fund",
-                "amount": 500.00,
-                "due_date": "2024-12-31",
-                "status": "In Progress",
-                "date_created": "2024-11-01T10:00:00"
-            }
-          ]
-          }
-        }
-      },
-      "monthly_summary": {
-        "2024":{
-          "11":{
-              "summary_id": 1,
-              "income_category_id": 1,
-              "total_income": 3000.00,
-              "total_outcome": 50.00,
-              "date_summary": "2024-11-01",
-              "date_created": "2024-11-01T10:30:00"
+  "incomes": {
+    "by_id": {
+      "1": {
+        "income_category_id": 1,
+        "description": "Monthly Salary",
+        "amount": 3000.00,
+        "date_income": "2024-11-01",
+        "date_created": "2024-11-01T08:00:00"
+      }
+    },
+    "by_date": {
+      "2024": {
+        "11": {
+          "25": {
+            "data": ["1"]
           }
         }
       }
+    },
+    "by_category": {
+        "1": [1]
+    }
+  },
+  "outcomes": {
+    "by_id": {
+      "1": {
+        "outcome_category_id": 1,
+        "description": "Bought groceries",
+        "amount": 50.00,
+        "date_spend_plan": null,
+        "actual_buy_date": "2024-11-02",
+        "status": "BOUGHT",
+        "date_created": "2024-11-01T09:00:00"
+      }
+    },
+    "by_date": {
+      "2024": {
+        "summary": {
+          "min": 0,
+          "total_amount": 0,
+          "total_transaction": 0,
+          "most_frequent": 0,
+          "max": 0
+        },
+        "11": {
+          "summary": {
+            "min": 0,
+            "total_amount": 0,
+            "total_transaction": 0,
+            "most_frequent": 0,
+            "max": 0
+          },
+          "25": {
+            "summary": {
+              "min": 0,
+              "total_amount": 0,
+              "total_transaction": 0,
+              "most_frequent": 0,
+              "max": 0
+            },
+            "data": ["1"]
+          }
+        }
+      }
+    },
+    "by_category": {
+        "1": [1]
+    }
+  },
+  "savings": {
+    "by_id": {
+      "1": {
+        "description": "Emergency Fund",
+        "amount": 500.00,
+        "due_date": "2024-12-31",
+        "status": "In Progress",
+        "date_created": "2024-11-01T10:00:00"
+      }
+    },
+    "by_date": {
+      "2024": {
+        "11": {
+          "25": {
+            "data": ["1"]
+          }
+        }
+      }
+    }
+  },
+"summary": {
+    "2024": {
+        "summary": {
+            "summary_id": 1,
+            "total_income": 36000.00,
+            "total_outcome": 12000.00,
+            "net_balance": 24000.00, 
+            "total_transactions": {
+                "income": 100,
+                "outcome": 80
+            },
+            "average": {
+                "income": 3000.00,
+                "outcome": 1000.00
+            },
+            "highest": {
+                "income": {
+                    "amount": 5000.00,
+                    "category_id": 2,
+                    "date": "2024-06-15"
+                },
+                "outcome": {
+                    "amount": 1500.00,
+                    "category_id": 4,
+                    "date": "2024-08-20"
+                }
+            },
+            "total_by_category": {
+                "income": {
+                    "1": 15000.00,
+                    "2": 12000.00,
+                    "3": 9000.00
+                },
+                "outcome": {
+                    "1": 5000.00,
+                    "2": 4000.00,
+                    "3": 3000.00
+                }
+            }
+        },
+        "11": {
+            "summary_id": 2,
+            "total_income": 3000.00,
+            "total_outcome": 1000.00,
+            "net_balance": 2000.00, 
+            "total_transactions": {
+                "income": 10,
+                "outcome": 8
+            },
+            "average": {
+                "income": 300.00,
+                "outcome": 125.00
+            },
+            "highest": {
+                "income": {
+                    "amount": 500.00,
+                    "category_id": 1,
+                    "date": "2024-11-05"
+                },
+                "outcome": {
+                    "amount": 300.00,
+                    "category_id": 2,
+                    "date": "2024-11-10"
+                }
+            },
+            "total_by_category": {
+                "income": {
+                    "1": 1500.00,
+                    "2": 1000.00,
+                    "3": 500.00
+                },
+                "outcome": {
+                    "1": 400.00,
+                    "2": 300.00,
+                    "3": 300.00
+                }
+            }
+        }
+    }
+}
 
 }
