@@ -846,17 +846,20 @@ async def delete_category(interaction:Interaction,category_type: str = SlashOpti
 
 @client.slash_command(guild_ids=list_guild_ids, description="Get income report for a specific date")
 async def get_daily_income(interaction: Interaction,date: str = SlashOption(
-        description="Enter a date (DD-MM-YYYY or DDMMYYYY)", 
-        required=True
+        description="Enter a date (DD-MM-YYYY or DDMMYYYY), will use current date if not filled",
+        required=False
     )):
     
     discord_id = str(interaction.user.id)
     
-    date = date.replace("-", "")
+    date_input = (date or "").replace("-", "")
 
     try:
         # Always parse as DDMMYYYY
-        date_obj = datetime.strptime(date, "%d%m%Y").date()
+        if date_input:
+            date_obj = datetime.strptime(date_input, "%d%m%Y").date()
+        else:
+            date_obj = datetime.now().date()
         formatted_date = date_obj.strftime("%d-%m-%Y")
         # Call your function
         status, message, data = await IncomeCommand.get_daily_income(discord_id, formatted_date)
@@ -1004,17 +1007,20 @@ async def outcome_insight(
 
 @client.slash_command(guild_ids=list_guild_ids, description="Get outcome report for a specific date")
 async def get_daily_outcome(interaction: Interaction,date: str = SlashOption(
-        description="Enter a date (DD-MM-YYYY or DDMMYYYY)", 
-        required=True
+        description="Enter a date (DD-MM-YYYY or DDMMYYYY), will use current date if not filled",
+        required=False
     )):
     
     discord_id = str(interaction.user.id)
     
-    date = date.replace("-", "")
+    date_input = (date or "").replace("-", "")
 
     try:
         # Always parse as DDMMYYYY
-        date_obj = datetime.strptime(date, "%d%m%Y").date()
+        if date_input:
+            date_obj = datetime.strptime(date_input, "%d%m%Y").date()
+        else:
+            date_obj = datetime.now().date()
         formatted_date = date_obj.strftime("%d-%m-%Y")
         # Call your function
         status, message, data = await OutcomeCommand.get_daily_outcome(discord_id, formatted_date)
