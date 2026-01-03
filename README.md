@@ -1,66 +1,108 @@
 # BudgetDiary
 
-A lightweight Discord bot for tracking incomes and expenses without a full database server. All data is stored in JSON so you can host the bot anywhere (Replit, containers, or a tiny VM) and still keep your ledger safe.
+BudgetDiary adalah bot Discord ringan untuk mencatat pemasukan dan pengeluaran tanpa database server. Data disimpan dalam JSON sehingga mudah di-host di VPS kecil, container, atau layanan gratis.
 
-## Features
+## Kapabilitas utama
 
-- `/register` — create a profile secured by your PIN.
-- `/profile` — view your language, email, and running balance.
-- `/categories` — list income or outcome categories scoped to your Discord account.
-- `/add_category` — create new categories that fit the way you spend.
-- `/transaction` — record incomes or outcomes against categories.
-- `/recent` — review the latest transactions.
-- `/help` — quick command reference.
+- Registrasi akun dengan PIN, bahasa, dan email.
+- Kategori income/outcome per user (tambah, edit, hapus).
+- Pencatatan income dan outcome dengan tanggal serta detail.
+- Transfer saldo antar kategori income.
+- Laporan income/outcome harian, bulanan, tahunan, plus ringkasan bulanan per kategori.
+- Insight outcome (kategori terboros dan transaksi termahal).
+- Reset transaksi dan pengelolaan sesi PIN.
 
-## Project layout
+## Slash commands
+
+### Akun dan bantuan
+
+- `/help` - Ringkasan perintah dan tips cepat.
+- `/menu` - Penjelasan singkat tiap menu.
+- `/register` - Registrasi akun baru.
+- `/profile` - Ringkasan profil dan saldo.
+- `/reset` [PIN] - Reset transaksi (opsi full untuk hapus profil dan kategori).
+- `/pin_remember` [PIN] - Enable, disable, atau cek status sesi PIN.
+
+### Kategori
+
+- `/list_categories` - Lihat kategori income atau outcome.
+- `/add_category` [PIN] - Tambah kategori dan emoticon.
+- `/edit_category` [PIN] - Ubah nama atau emoticon kategori.
+- `/delete_category` [PIN] - Hapus kategori.
+
+### Transaksi
+
+- `/add_income` [PIN] - Catat pemasukan.
+- `/add_outcome` [PIN] - Catat pengeluaran.
+- `/delete_income` [PIN] - Hapus pemasukan berdasarkan tanggal.
+- `/edit_income` - Pilih transaksi income pada tanggal tertentu untuk diedit.
+- `/transfer_income` - Transfer saldo antar kategori income.
+- `/transfer` - Alias transfer income.
+
+### Laporan
+
+- `/get_daily_income` - Laporan pemasukan harian.
+- `/get_monthly_income` - Laporan pemasukan bulanan.
+- `/get_yearly_income` - Laporan pemasukan tahunan.
+- `/get_daily_outcome` - Laporan pengeluaran harian.
+- `/get_monthly_outcome` - Laporan pengeluaran bulanan.
+- `/get_yearly_outcome` - Laporan pengeluaran tahunan.
+- `/monthly_summary` - Ringkasan bulanan pemasukan dan pengeluaran per kategori.
+- `/outcome_insight` - Insight pengeluaran (kategori terboros dan transaksi termahal).
+
+### Developer/testing
+
+- `/dropdown` - Test dropdown menu.
+- `/test1` - Test output unicode.
+- `/yes_no_test` - Test embed dengan tombol yes/no.
+
+Catatan:
+
+- `[PIN]` berarti perintah meminta PIN.
+- Format tanggal: harian `DD-MM-YYYY`, bulanan `MM-YYYY`, tahunan `YYYY`.
+
+## Struktur proyek
 
 ```
-budget_diary/
-├── bot.py                  # Bot bootstrap + extension loader
-├── config.py               # Environment-driven paths and defaults
-├── models.py               # Dataclasses for users, categories, transactions
-├── cogs/                   # Slash commands grouped by responsibility
-├── services/               # Business logic and JSON persistence helpers
-└── storage/json_store.py   # Tiny JSON wrapper with defaults
+main.py                 # entry point bot
+command/                # logic perintah (user, category, income, outcome)
+config/                 # konfigurasi path JSON
+decorator/              # middleware PIN
+util/                   # helper teks, tanggal, logger
+data/                   # storage JSON
+help.json               # sumber konten /help
+list_guild.json         # daftar guild untuk registrasi slash command
 ```
 
-Data is kept under `data/`:
+## Data storage
 
-- `users.json` — registered Discord users.
-- `categories.json` — per-user income/outcome categories.
-- `transactions.json` — ledger entries keyed by user.
-- `templates/categories.json` — default categories automatically applied to new users.
+- `data/user.json` - data profil user.
+- `data/category.json` - kategori income/outcome.
+- `data/transaction/<discord_id>.json` - transaksi per user.
+- `data/template/category.json` - template kategori awal.
+- `data/template/transaction.json` - template transaksi kosong.
 
 ## Setup
 
-1. Install dependencies (Python 3.10+ recommended):
+1. Install dependency (Python 3.10+ disarankan):
 
    ```bash
    pip install -r requirements.txt
    ```
 
-2. Provide a Discord bot token via environment variable:
+2. Isi token bot di `_env.py`:
 
-   ```bash
-   export DISCORD_BOT_TOKEN="your token here"
+   ```python
+   class ENV:
+       TOKEN = "your-bot-token"
    ```
 
-   Optional overrides:
+   Tambahkan guild ID di `list_guild.json` agar slash command terdaftar cepat di server uji.
 
-   - `DEFAULT_LANGUAGE` — default language saved for new users (defaults to `en`).
-   - `DATA_DIR` — custom directory for JSON storage (defaults to the bundled `data/`).
-
-3. Start the bot:
+3. Jalankan bot:
 
    ```bash
-   python -m budget_diary.bot
+   python main.py
    ```
 
-Invite the bot to your server and use `/help` to see the available commands.
-
-## Design notes
-
-- JSON storage is handled by `JsonStore`, which guarantees files and parent folders exist before any reads/writes.
-- Services (`user_service.py`, `category_service.py`, `transaction_service.py`) keep business logic DRY and testable, separating it from Discord-specific code.
-- Cogs only orchestrate user interaction; they call services to read/write JSON data.
-- Default categories live in `data/templates/categories.json`, making it easy to ship opinionated starting points while still allowing per-user customization.
+Gunakan `/help` untuk melihat ringkasan perintah di Discord.
